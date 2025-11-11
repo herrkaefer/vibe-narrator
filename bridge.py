@@ -113,7 +113,7 @@ class MCPBridge:
             if not line:
                 continue
             try:
-                # logger.info(f"🟢 MCP Server Response: {line}")
+                logger.info(f"🟢 MCP Server Response: {line}")
                 msg = json.loads(line)
 
                 # Check if it's an initialize response (id=0)
@@ -128,7 +128,7 @@ class MCPBridge:
                     self.responses_received[response_id] = msg
                     if response_id in self.pending_requests:
                         del self.pending_requests[response_id]
-                    # logger.info(f"🟢 MCP Server Response (id={response_id}): {msg}")
+                    logger.info(f"🟢 MCP Server Response (id={response_id}): {msg}")
 
             except json.JSONDecodeError:
                 logger.warning(f"⚠️ Non-JSON output from MCP Server: {line}")
@@ -243,8 +243,8 @@ def filter_ui_elements(text: str) -> str:
             continue
 
         # 1. 过滤用户输入（以 > 开头的行）
-        # if line.startswith('>'):
-        #     continue
+        if line.startswith('>'):
+            continue
 
         # 2. 过滤以问号开头的 Claude Code 提示（如 "? for shortcuts"）
         if line.startswith('?'):
