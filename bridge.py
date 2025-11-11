@@ -187,6 +187,23 @@ if __name__ == "__main__":
     import termios
     import tty
     import signal
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='MCP Bridge - Run command in PTY and forward output to MCP server',
+        epilog='''
+Examples:
+  python bridge.py claude
+  python bridge.py python -i
+  python bridge.py bash
+        '''
+    )
+    parser.add_argument('command', nargs=argparse.REMAINDER,
+                       help='Command to run in PTY (e.g., claude, python -i, bash)')
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.error("command is required")
 
     logger.info("🧩 Starting MCP Bridge...")
     bridge = MCPBridge()
@@ -202,10 +219,12 @@ if __name__ == "__main__":
     # 保存当前终端设置
     old_settings = termios.tcgetattr(sys.stdin)
 
-    # 在伪终端中运行 Claude
-    claude_cmd = ["claude"]  # 或者从命令行参数获取
-    claude_proc = subprocess.Popen(
-        claude_cmd,
+    # 从命令行参数获取要运行的命令
+    cmd = args.command
+    logger.info(f"🚀 Running command in PTY: {' '.join(cmd)}")
+
+    cmd_proc = subprocess.Popen(
+        cmd,
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,
@@ -227,8 +246,8 @@ if __name__ == "__main__":
         def signal_handler(sig, frame):
             restore_terminal()
             os.close(master_fd)
-            if claude_proc.poll() is None:
-                claude_proc.terminate()
+            if cmd_proc.poll() is None:
+                cmd_proc.terminate()
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -240,7 +259,7 @@ if __name__ == "__main__":
                 # 检查哪些文件描述符有数据可读
                 ready, _, _ = select.select([master_fd, sys.stdin], [], [], 0.1)
 
-                # 从 Claude 的输出（master_fd）读取
+                # 从命令的输出（master_fd）读取
                 if master_fd in ready:
                     try:
                         data = os.read(master_fd, 1024)
@@ -263,19 +282,19 @@ if __name__ == "__main__":
                     except OSError:
                         break
 
-                # 从用户输入（stdin）读取，转发给 Claude
+                # 从用户输入（stdin）读取，转发给命令
                 if sys.stdin in ready:
                     try:
                         data = os.read(sys.stdin.fileno(), 1024)
                         if not data:
                             break
-                        # 转发给 Claude
+                        # 转发给命令
                         os.write(master_fd, data)
                     except OSError:
                         break
 
                 # 检查进程是否结束
-                if claude_proc.poll() is not None:
+                if cmd_proc.poll() is not None:
                     # 读取剩余数据
                     while True:
                         ready, _, _ = select.select([master_fd], [], [], 0.1)
@@ -287,6 +306,13 @@ if __name__ == "__main__":
                                 break
                             sys.stdout.buffer.write(data)
                             sys.stdout.buffer.flush()
+
+                            # 处理剩余数据，发送给 bridge
+                            text = data.decode('utf-8', errors='replace')
+                            for line in text.splitlines(keepends=True):
+                                clean = clean_text(line)
+                                if clean:
+                                    bridge.send_chunk(clean)
                         except OSError:
                             break
                     break
@@ -298,9 +324,9 @@ if __name__ == "__main__":
 
     finally:
         os.close(master_fd)
-        if claude_proc.poll() is None:
-            claude_proc.terminate()
-        claude_proc.wait()
+        if cmd_proc.poll() is None:
+            cmd_proc.terminate()
+        cmd_proc.wait()
 
         # 等待所有响应
         logger.info("⏳ Waiting for MCP Server responses...")
