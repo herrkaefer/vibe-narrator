@@ -113,7 +113,7 @@ class MCPBridge:
             if not line:
                 continue
             try:
-                logger.info(f"🟢 MCP Server Response: {line}")
+                # logger.info(f"🟢 MCP Server Response: {line}")
                 msg = json.loads(line)
 
                 # Check if it's a notification (no id field)
@@ -176,11 +176,11 @@ class MCPBridge:
         if self.proc.poll() is None:
             logger.info("🛑 Terminating MCP Server process...")
             self.proc.terminate()
-            
+
             # 给一点时间让 MCP Server 发送 shutdown notification
             import time
             time.sleep(0.2)
-            
+
             try:
                 self.proc.wait(timeout=1.8)  # 总共 2 秒，已经等了 0.2 秒
             except subprocess.TimeoutExpired:
@@ -270,9 +270,12 @@ def filter_ui_elements(text: str) -> str:
         if not line:
             continue
 
-        # 1. 过滤用户输入（以 > 开头的行）
+        # 1. 过滤空行用户输入（以 > 开头但后面没有内容的行）
         if line.startswith('>'):
-            continue
+            # 去掉 ">" 和后面的空格，检查是否还有内容
+            content_after_arrow = line[1:].strip()
+            if not content_after_arrow:
+                continue
 
         # 2. 过滤以问号开头的 Claude Code 提示（如 "? for shortcuts"）
         if line.startswith('?'):
