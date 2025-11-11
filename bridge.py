@@ -211,6 +211,74 @@ def clean_ansi_codes(text: str) -> str:
     return text
 
 
+import unicodedata
+
+def filter_ui_elements(text: str) -> str:
+    """
+    只保留自然语言字符，过滤掉所有特殊字符、图标、UI 元素等
+
+    支持所有人类语言：中文、日语、法语、德语、英语等
+    """
+    if not text:
+        return ""
+
+    lines = text.split('\n')
+    filtered_lines = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # 1. 过滤用户输入（以 > 开头的行）
+        if line.startswith('>'):
+            continue
+
+        # 2. 过滤以问号开头的 Claude Code 提示（如 "? for shortcuts"）
+        if line.startswith('?'):
+            continue
+
+        # 2. 过滤分隔线（主要是 - 或 = 的长行）
+        if len(line) > 20:
+            line_chars = set(line.replace(' ', ''))
+            separator_chars = set('-=─━')
+            if line_chars.issubset(separator_chars) or \
+               (len(line_chars & separator_chars) > 0 and len(line_chars - separator_chars) <= 2):
+                continue
+
+        # 3. 只保留自然语言字符
+        filtered_chars = []
+        for char in line:
+            cat = unicodedata.category(char)
+
+            # 保留所有字母（L* = Letter，包括所有语言）
+            if cat.startswith('L'):
+                filtered_chars.append(char)
+            # 保留所有数字（N* = Number）
+            elif cat.startswith('N'):
+                filtered_chars.append(char)
+            # 保留空格（Zs = Space Separator）
+            elif cat == 'Zs':
+                filtered_chars.append(char)
+            # 保留常见文本标点（P* = Punctuation，但需要筛选）
+            elif cat.startswith('P'):
+                # 保留常见标点符号
+                if char in '.,!?;:\'"()[]{}-_/\\@#$%&*+=<>|~`^…—–«»„"':
+                    filtered_chars.append(char)
+                # 保留中文标点范围
+                elif '\u3000' <= char <= '\u303f' or '\uff00' <= char <= '\uffef':
+                    filtered_chars.append(char)
+
+        line = ''.join(filtered_chars)
+
+        # 4. 清理多余空白
+        line = re.sub(r'\s+', ' ', line).strip()
+
+        if line:
+            filtered_lines.append(line)
+
+    return '\n'.join(filtered_lines)
+
 def clean_text(text: str) -> str:
     """
     清理 Claude Code 输出，移除 ANSI 转义序列和多余空白
@@ -224,6 +292,8 @@ def clean_text(text: str) -> str:
 
     # 先清理 ANSI 转义序列
     cleaned = clean_ansi_codes(text)
+
+    cleaned = filter_ui_elements(cleaned)
 
     # 去除首尾空白
     cleaned = cleaned.strip()
