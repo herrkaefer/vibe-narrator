@@ -11,12 +11,12 @@ from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-# 获取脚本目录，用于存放日志文件
+# Get script directory for storing log files
 script_dir = Path(__file__).parent.absolute()
 log_file = script_dir / "logs" / f"bridge_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 os.makedirs(script_dir / "logs", exist_ok=True)
 
-# 配置 logging 输出到文件
+# Configure logging output to file
 logging.basicConfig(
     level=logging.INFO,  # Can be changed to DEBUG to see details
     format="%(asctime)s [%(levelname)s] %(threadName)s: %(message)s",
@@ -24,7 +24,7 @@ logging.basicConfig(
         RotatingFileHandler(
             log_file,
             maxBytes=10*1024*1024,  # 10MB
-            backupCount=5,  # 保留5个备份文件
+            backupCount=5,  # Keep 5 backup files
             encoding='utf-8'
         )
     ]
@@ -121,7 +121,7 @@ class MCPBridge:
                     method = msg.get("method", "")
                     if method == "notifications/shutdown":
                         logger.info(f"🛑 Received shutdown notification from MCP Server: {msg.get('params', {})}")
-                        # 可以在这里做一些清理工作
+                        # Can do some cleanup work here
                         continue
 
                 # Check if it's an initialize response (id=0)
@@ -177,12 +177,12 @@ class MCPBridge:
             logger.info("🛑 Terminating MCP Server process...")
             self.proc.terminate()
 
-            # 给一点时间让 MCP Server 发送 shutdown notification
+            # Give MCP Server some time to send shutdown notification
             import time
             time.sleep(0.2)
 
             try:
-                self.proc.wait(timeout=1.8)  # 总共 2 秒，已经等了 0.2 秒
+                self.proc.wait(timeout=1.8)  # Total 2 seconds, already waited 0.2 seconds
             except subprocess.TimeoutExpired:
                 logger.warning("⚠️ MCP Server didn't terminate, forcing kill...")
                 self.proc.kill()
@@ -194,58 +194,58 @@ class MCPBridge:
 
 def clean_ansi_codes(text: str) -> str:
     """
-    清理 ANSI 转义序列（颜色代码、格式化字符等），还原纯文本
+    Clean ANSI escape sequences (color codes, formatting characters, etc.), restore plain text
 
-    移除的 ANSI 序列包括：
-    - 颜色代码：\x1b[30m - \x1b[37m (前景色), \x1b[40m - \x1b[47m (背景色)
-    - 样式代码：\x1b[0m (重置), \x1b[1m (粗体), \x1b[2m (暗淡), 等
-    - 光标控制：\x1b[K (清除到行尾), \x1b[J (清除屏幕), 等
-    - DEC 私有模式序列：\x1b[?数字h/l (如 [?25l, [?2004h 等)
-    - OSC 序列：\x1b]数字;...\x07 或 \x1b]数字;...\x1b\\ (如 ]0;title, ]9;command)
-    - 通用格式：\x1b[...m 或 \033[...m
+    Removed ANSI sequences include:
+    - Color codes: \x1b[30m - \x1b[37m (foreground), \x1b[40m - \x1b[47m (background)
+    - Style codes: \x1b[0m (reset), \x1b[1m (bold), \x1b[2m (dim), etc.
+    - Cursor control: \x1b[K (clear to end of line), \x1b[J (clear screen), etc.
+    - DEC private mode sequences: \x1b[?number h/l (e.g. [?25l, [?2004h etc.)
+    - OSC sequences: \x1b]number;...\x07 or \x1b]number;...\x1b\\ (e.g. ]0;title, ]9;command)
+    - General format: \x1b[...m or \033[...m
 
     Args:
-        text: 包含 ANSI 转义序列的文本
+        text: Text containing ANSI escape sequences
 
     Returns:
-        清理后的纯文本
+        Cleaned plain text
     """
     if not text:
         return text
 
-    # 移除 OSC (Operating System Command) 序列
-    # 完整格式：\x1b]数字;文本\x07 或 \x1b]数字;文本\x1b\\
-    # 但可能被分割，只剩下 ]数字;文本 或 ]数字;
+    # Remove OSC (Operating System Command) sequences
+    # Full format: \x1b]number;text\x07 or \x1b]number;text\x1b\\
+    # But may be split, leaving only ]number;text or ]number;
     osc_patterns = [
-        r'\x1b\]\d+;.*?(\x07|\x1b\\)',  # 完整的 OSC 序列（带前缀）
-        r'\033\]\d+;.*?(\x07|\x1b\\)',  # 八进制形式
-        r'\]\d+;.*?(\x07|\x1b\\)',      # 前缀已移除的 OSC 序列（带结尾）
-        r'\]\d+;[^\n]*',                 # 前缀和结尾都移除的 OSC 序列（]数字;后面到行尾）
+        r'\x1b\]\d+;.*?(\x07|\x1b\\)',  # Complete OSC sequence (with prefix)
+        r'\033\]\d+;.*?(\x07|\x1b\\)',  # Octal form
+        r'\]\d+;.*?(\x07|\x1b\\)',      # OSC sequence with prefix removed (with ending)
+        r'\]\d+;[^\n]*',                 # OSC sequence with both prefix and ending removed (]number; to end of line)
     ]
 
-    # 移除所有 ANSI 转义序列（包括 DEC 私有模式和 OSC）
+    # Remove all ANSI escape sequences (including DEC private mode and OSC)
     ansi_patterns = [
-        r'\x1b\[[0-9;]*[a-zA-Z]',           # 标准 ANSI 序列
-        r'\x1b\[[?][0-9;]*[hHlL]',          # DEC 私有模式序列
-        r'\033\[[0-9;]*[a-zA-Z]',            # 标准 ANSI 序列（八进制）
-        r'\033\[[?][0-9;]*[hHlL]',           # DEC 私有模式序列（八进制）
-        r'\[[?][0-9;]*[hHlL]',               # 单独的 DEC 私有模式序列
-        r'\[[0-9;]*[a-zA-Z]',                 # 单独的 ANSI 序列
-        r'\[[0-9;]+',                         # 不完整的 ANSI 序列（如 [38;2;102;102）
-        r'^[;0-9]+m',                         # 序列的继续部分（如 ;102m）
+        r'\x1b\[[0-9;]*[a-zA-Z]',           # Standard ANSI sequence
+        r'\x1b\[[?][0-9;]*[hHlL]',          # DEC private mode sequence
+        r'\033\[[0-9;]*[a-zA-Z]',            # Standard ANSI sequence (octal)
+        r'\033\[[?][0-9;]*[hHlL]',           # DEC private mode sequence (octal)
+        r'\[[?][0-9;]*[hHlL]',               # Standalone DEC private mode sequence
+        r'\[[0-9;]*[a-zA-Z]',                 # Standalone ANSI sequence
+        r'\[[0-9;]+',                         # Incomplete ANSI sequence (e.g. [38;2;102;102)
+        r'^[;0-9]+m',                         # Continuation of sequence (e.g. ;102m)
     ] + osc_patterns
 
-    # 组合所有模式
+    # Combine all patterns
     ansi_escape = re.compile('|'.join(ansi_patterns))
     text = ansi_escape.sub('', text)
 
-    # 移除其他常见的控制字符（但保留换行符、制表符等有用的）
-    # 移除退格、回车（单独出现时）、响铃等
+    # Remove other common control characters (but keep useful ones like newlines, tabs)
+    # Remove backspace, carriage return (when standalone), bell, etc.
     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
 
-    # 移除乱码字符（替换字符 U+FFFD）
+    # Remove garbled characters (replacement character U+FFFD)
     text = text.replace('\ufffd', '')
-    # 移除其他无效的 Unicode 字符
+    # Remove other invalid Unicode characters
     text = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff]', '', text)
 
     return text
@@ -255,9 +255,9 @@ import unicodedata
 
 def filter_ui_elements(text: str) -> str:
     """
-    只保留自然语言字符，过滤掉所有特殊字符、图标、UI 元素等
+    Keep only natural language characters, filter out all special characters, icons, UI elements, etc.
 
-    支持所有人类语言：中文、日语、法语、德语、英语等
+    Supports all human languages: Chinese, Japanese, French, German, English, etc.
     """
     if not text:
         return ""
@@ -270,22 +270,22 @@ def filter_ui_elements(text: str) -> str:
         if not line:
             continue
 
-        # 1. 过滤空行用户输入（以 > 开头但后面没有内容的行）
+        # 1. Filter empty user input (lines starting with > but no content after)
         if line.startswith('>'):
-            # 去掉 ">" 和后面的空格，检查是否还有内容
+            # Remove ">" and spaces after, check if there's any content
             content_after_arrow = line[1:].strip()
             if not content_after_arrow:
                 continue
 
-        # 2. 过滤以问号开头的 Claude Code 提示（如 "? for shortcuts"）
+        # 2. Filter Claude Code prompts starting with question mark (e.g. "? for shortcuts")
         if line.startswith('?'):
             continue
 
-        # 3. 过滤 OSC 序列残留（如 "]0; Display Circle", "]9;"）
+        # 3. Filter remaining OSC sequences (e.g. "]0; Display Circle", "]9;")
         if re.match(r'^\]\d+;', line.strip()):
             continue
 
-        # 4. 过滤 UI 提示文本
+        # 4. Filter UI prompt text
         ui_patterns = [
             r'^Thinking on \(tab to toggle\)',
             r'^\(esc to interrupt\)',
@@ -303,7 +303,7 @@ def filter_ui_elements(text: str) -> str:
         if any(re.match(pattern, line, re.IGNORECASE) for pattern in ui_patterns):
             continue
 
-        # 5. 过滤分隔线（主要是 - 或 = 的长行）
+        # 5. Filter separator lines (mainly long lines of - or =)
         if len(line) > 20:
             line_chars = set(line.replace(' ', ''))
             separator_chars = set('-=─━')
@@ -311,41 +311,41 @@ def filter_ui_elements(text: str) -> str:
                (len(line_chars & separator_chars) > 0 and len(line_chars - separator_chars) <= 2):
                 continue
 
-        # 6. 只保留自然语言字符
+        # 6. Keep only natural language characters
         filtered_chars = []
         for char in line:
             cat = unicodedata.category(char)
 
-            # 保留所有字母（L* = Letter，包括所有语言）
+            # Keep all letters (L* = Letter, includes all languages)
             if cat.startswith('L'):
                 filtered_chars.append(char)
-            # 保留所有数字（N* = Number）
+            # Keep all numbers (N* = Number)
             elif cat.startswith('N'):
                 filtered_chars.append(char)
-            # 保留空格（Zs = Space Separator）
+            # Keep spaces (Zs = Space Separator)
             elif cat == 'Zs':
                 filtered_chars.append(char)
-            # 保留竖线字符（显式保留，确保不被过滤）
+            # Keep pipe character (explicitly preserve to ensure not filtered)
             elif char == '|':
                 filtered_chars.append(char)
-            # 保留常见文本标点（P* = Punctuation，但需要筛选）
+            # Keep common text punctuation (P* = Punctuation, but needs filtering)
             elif cat.startswith('P'):
-                # 保留常见标点符号
+                # Keep common punctuation marks
                 if char in '.,!?;:\'"()[]{}-_/\\@#$%&*+=<>|~`^…—–«»„"':
                     filtered_chars.append(char)
-                # 保留中文标点范围
+                # Keep Chinese punctuation range
                 elif '\u3000' <= char <= '\u303f' or '\uff00' <= char <= '\uffef':
                     filtered_chars.append(char)
-            # 暂时保留分隔线字符（用于检查模式）
+            # Temporarily keep separator characters (for pattern checking)
             elif char in '-=─━':
                 filtered_chars.append(char)
-            # 暂时保留 > 字符（用于检查用户输入）
+            # Temporarily keep > character (for checking user input)
             elif char == '>':
                 filtered_chars.append(char)
 
         line = ''.join(filtered_chars)
 
-        # 7. 清理多余空白
+        # 7. Clean excessive whitespace
         line = re.sub(r'\s+', ' ', line).strip()
 
         if line:
@@ -355,21 +355,21 @@ def filter_ui_elements(text: str) -> str:
 
 def clean_text(text: str) -> str:
     """
-    清理 Claude Code 输出，移除 ANSI 转义序列和多余空白
+    Clean Claude Code output, remove ANSI escape sequences and excessive whitespace
 
-    先清理 ANSI 代码，然后去除首尾空白，最后发送给 MCP
+    First clean ANSI codes, then remove leading/trailing whitespace, finally send to MCP
     """
     # return text # testing...
 
     if not text:
         return ""
 
-    # 先清理 ANSI 转义序列
+    # First clean ANSI escape sequences
     cleaned = clean_ansi_codes(text)
 
     cleaned = filter_ui_elements(cleaned)
 
-    # 去除首尾空白
+    # Remove leading/trailing whitespace
     cleaned = cleaned.strip()
 
     return cleaned
@@ -390,51 +390,51 @@ def simulate_coding_output():
 
 class TextBuffer:
     """
-    文本缓冲区，累积数据并记录时间戳，用于决定发送时机
-    确保只在行边界处发送，避免在行中间切断
+    Text buffer that accumulates data and records timestamps to determine when to send
+    Ensures sending only at line boundaries, avoiding cutting in the middle of lines
     """
     def __init__(self, min_window_seconds=1.0, pause_threshold=2.0):
-        self.buffer = ""  # 累积的文本数据
-        self.window_start_time = None  # 当前窗口开始时间
-        self.last_data_time = None  # 最后一次数据到达时间
-        self.min_window_seconds = min_window_seconds  # 最小累积时间：1秒
-        self.pause_threshold = pause_threshold  # 停顿阈值：2秒
+        self.buffer = ""  # Accumulated text data
+        self.window_start_time = None  # Current window start time
+        self.last_data_time = None  # Time of last data arrival
+        self.min_window_seconds = min_window_seconds  # Minimum accumulation time: 1 second
+        self.pause_threshold = pause_threshold  # Pause threshold: 2 seconds
 
     def add_data(self, text: str, current_time: float):
-        """添加新数据到缓冲区，记录时间戳"""
+        """Add new data to buffer, record timestamp"""
         self.buffer += text
         if self.window_start_time is None:
             self.window_start_time = current_time
         self.last_data_time = current_time
 
     def has_complete_lines(self) -> bool:
-        """检查缓冲区是否有完整的行（以换行符结尾）"""
+        """Check if buffer has complete lines (ending with newline)"""
         return self.buffer and '\n' in self.buffer
 
     def should_flush(self, current_time: float) -> bool:
         """
-        判断是否应该刷新缓冲区
+        Determine if buffer should be flushed
 
-        返回 True 的情况：
-        1. 缓冲区有完整行，且累积时间 >= 最小时间窗口（1秒）
-        2. 距离上次数据到达超过停顿阈值（2秒），且有完整行
-        3. 距离上次数据到达超过停顿阈值（2秒），且缓冲区很大（即使没有完整行，也要发送）
+        Returns True in the following cases:
+        1. Buffer has complete lines and accumulation time >= minimum time window (1 second)
+        2. Time since last data arrival exceeds pause threshold (2 seconds) and has complete lines
+        3. Time since last data arrival exceeds pause threshold (2 seconds) and buffer is very large (send even without complete lines)
         """
         if not self.buffer:
             return False
 
         has_complete = self.has_complete_lines()
 
-        # 检查是否超过最小时间窗口（必须有完整行）
+        # Check if minimum time window is exceeded (must have complete lines)
         if self.window_start_time and \
            (current_time - self.window_start_time) >= self.min_window_seconds:
             if has_complete:
                 return True
 
-        # 检查是否超过停顿阈值
+        # Check if pause threshold is exceeded
         if self.last_data_time and \
            (current_time - self.last_data_time) >= self.pause_threshold:
-            # 如果有完整行，或者缓冲区很大（超过一定大小），就发送
+            # Send if has complete lines, or buffer is very large (exceeds certain size)
             if has_complete or len(self.buffer) > 4096:
                 return True
 
@@ -442,20 +442,20 @@ class TextBuffer:
 
     def flush(self) -> str:
         """
-        刷新缓冲区，返回完整的行，保留不完整的行在缓冲区中
+        Flush buffer, return complete lines, keep incomplete lines in buffer
 
-        返回空字符串表示没有完整的行可发送
+        Returns empty string if no complete lines to send
         """
         if not self.buffer:
             return ""
 
-        # 找到最后一个换行符的位置
+        # Find the position of the last newline
         last_newline = self.buffer.rfind('\n')
 
         if last_newline == -1:
-            # 没有换行符，不发送（除非缓冲区很大，在停顿阈值情况下）
+            # No newline, don't send (unless buffer is very large, in pause threshold case)
             if len(self.buffer) > 4096:
-                # 缓冲区很大但没有换行符，可能是单行很长，发送全部
+                # Buffer is very large but no newline, possibly a very long single line, send all
                 result = self.buffer
                 self.buffer = ""
                 self.window_start_time = None
@@ -463,28 +463,28 @@ class TextBuffer:
                 return result
             return ""
 
-        # 发送到最后一个换行符为止的完整行
-        result = self.buffer[:last_newline + 1]  # 包含换行符
-        self.buffer = self.buffer[last_newline + 1:]  # 保留不完整的行
+        # Send complete lines up to the last newline
+        result = self.buffer[:last_newline + 1]  # Include newline
+        self.buffer = self.buffer[last_newline + 1:]  # Keep incomplete lines
 
-        # 如果缓冲区清空了，重置时间戳
+        # If buffer is cleared, reset timestamps
         if not self.buffer:
             self.window_start_time = None
             self.last_data_time = None
         else:
-            # 如果还有剩余数据，更新窗口开始时间（从剩余数据开始计算）
+            # If there's remaining data, update window start time (start counting from remaining data)
             self.window_start_time = time.time()
 
         return result
 
     def has_data(self) -> bool:
-        """检查缓冲区是否有数据"""
+        """Check if buffer has data"""
         return bool(self.buffer)
 
     def flush_all(self) -> str:
         """
-        强制刷新所有缓冲区内容（用于程序结束时）
-        即使没有完整行也发送
+        Force flush all buffer contents (used when program ends)
+        Send even if there are no complete lines
         """
         if not self.buffer:
             return ""
@@ -524,17 +524,17 @@ Examples:
     bridge = MCPBridge()
     time.sleep(0.5)
 
-    # 创建一个伪终端对
+    # Create a pseudo terminal pair
     master_fd, slave_fd = pty.openpty()
 
-    # 获取终端名称
+    # Get terminal name
     slave_name = os.ttyname(slave_fd)
     logger.info(f"📺 Created PTY: {slave_name}")
 
-    # 保存当前终端设置
+    # Save current terminal settings
     old_settings = termios.tcgetattr(sys.stdin)
 
-    # 从命令行参数获取要运行的命令
+    # Get command to run from command line arguments
     cmd = args.command
     logger.info(f"🚀 Running command in PTY: {' '.join(cmd)}")
 
@@ -546,18 +546,18 @@ Examples:
         start_new_session=True
     )
 
-    # 关闭 slave_fd（master 端保持打开）
+    # Close slave_fd (master side remains open)
     os.close(slave_fd)
 
-    # 设置终端为原始模式（用于正确处理输入）
+    # Set terminal to raw mode (for proper input handling)
     try:
         tty.setraw(sys.stdin.fileno())
 
         def restore_terminal():
-            """恢复终端设置"""
+            """Restore terminal settings"""
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
-        # 注册信号处理，确保退出时恢复终端
+        # Register signal handler to ensure terminal is restored on exit
         def signal_handler(sig, frame):
             restore_terminal()
             os.close(master_fd)
@@ -568,15 +568,15 @@ Examples:
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        # 初始化文本缓冲区
+        # Initialize text buffer
         text_buffer = TextBuffer(min_window_seconds=1.0, pause_threshold=2.0)
 
-        # 双向通信循环
+        # Bidirectional communication loop
         try:
             while True:
                 current_time = time.time()
 
-                # 检查是否应该刷新缓冲区（即使没有新数据）
+                # Check if buffer should be flushed (even if there's no new data)
                 if text_buffer.should_flush(current_time):
                     buffered_text = text_buffer.flush()
                     if buffered_text:
@@ -584,27 +584,27 @@ Examples:
                         if clean:
                             bridge.send_chunk(clean)
 
-                # 检查哪些文件描述符有数据可读
+                # Check which file descriptors have data to read
                 ready, _, _ = select.select([master_fd, sys.stdin], [], [], 0.1)
 
-                # 从命令的输出（master_fd）读取
+                # Read from command output (master_fd)
                 if master_fd in ready:
                     try:
                         data = os.read(master_fd, 1024)
                         if not data:
                             break
 
-                        # 输出到终端
+                        # Output to terminal
                         sys.stdout.buffer.write(data)
                         sys.stdout.buffer.flush()
 
-                        # 添加到缓冲区（不立即处理）
+                        # Add to buffer (don't process immediately)
                         try:
                             text = data.decode('utf-8', errors='replace')
                             current_time = time.time()
                             text_buffer.add_data(text, current_time)
 
-                            # 检查是否应该刷新
+                            # Check if should flush
                             if text_buffer.should_flush(current_time):
                                 buffered_text = text_buffer.flush()
                                 if buffered_text:
@@ -616,20 +616,20 @@ Examples:
                     except OSError:
                         break
 
-                # 从用户输入（stdin）读取，转发给命令
+                # Read from user input (stdin), forward to command
                 if sys.stdin in ready:
                     try:
                         data = os.read(sys.stdin.fileno(), 1024)
                         if not data:
                             break
-                        # 转发给命令
+                        # Forward to command
                         os.write(master_fd, data)
                     except OSError:
                         break
 
-                # 检查进程是否结束
+                # Check if process has ended
                 if cmd_proc.poll() is not None:
-                    # 读取剩余数据
+                    # Read remaining data
                     while True:
                         ready, _, _ = select.select([master_fd], [], [], 0.1)
                         if not ready:
@@ -641,14 +641,14 @@ Examples:
                             sys.stdout.buffer.write(data)
                             sys.stdout.buffer.flush()
 
-                            # 添加到缓冲区
+                            # Add to buffer
                             text = data.decode('utf-8', errors='replace')
                             current_time = time.time()
                             text_buffer.add_data(text, current_time)
                         except OSError:
                             break
 
-                    # 处理剩余缓冲区
+                    # Process remaining buffer
                     buffered_text = text_buffer.flush_all()
                     if buffered_text:
                         clean = clean_text(buffered_text)
@@ -661,7 +661,7 @@ Examples:
         finally:
             restore_terminal()
 
-            # 处理最后剩余的缓冲区
+            # Process final remaining buffer
             if text_buffer.has_data():
                 buffered_text = text_buffer.flush_all()
                 if buffered_text:
@@ -675,9 +675,9 @@ Examples:
             cmd_proc.terminate()
         cmd_proc.wait()
 
-        # 清理 MCP Server
+        # Clean up MCP Server
         bridge.cleanup()
 
-        # 等待所有响应
+        # Wait for all responses
         bridge.wait_for_responses(timeout=2.0)
         logger.info("✅ All responses received (or timeout)")
