@@ -7,29 +7,13 @@ import time
 import logging
 import os
 from pathlib import Path
-from datetime import datetime
-from logging.handlers import RotatingFileHandler
 
-# 获取脚本目录，用于存放日志文件
-script_dir = Path(__file__).parent.absolute()
-log_file = script_dir / "logs" / f"bridge_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-os.makedirs(script_dir / "logs", exist_ok=True)
-
-# 配置 logging 输出到文件
 logging.basicConfig(
     level=logging.INFO,  # Can be changed to DEBUG to see details
     format="%(asctime)s [%(levelname)s] %(threadName)s: %(message)s",
-    handlers=[
-        RotatingFileHandler(
-            log_file,
-            maxBytes=10*1024*1024,  # 10MB
-            backupCount=5,  # 保留5个备份文件
-            encoding='utf-8'
-        )
-    ]
+    handlers=[logging.StreamHandler(sys.stderr)]
 )
 logger = logging.getLogger(__name__)
-logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
@@ -182,127 +166,47 @@ def simulate_coding_output():
 
 
 if __name__ == "__main__":
-    import pty
-    import select
-    import termios
-    import tty
-    import signal
+    import select  # For checking if stdin has data (Unix only)
 
     logger.info("🧩 Starting MCP Bridge...")
+    logger.info("📥 Reading from stdin (use pipe: command | python bridge.py)")
+
     bridge = MCPBridge()
+
+    # Wait a bit for MCP Server to be ready
     time.sleep(0.5)
 
-    # 创建一个伪终端对
-    master_fd, slave_fd = pty.openpty()
-
-    # 获取终端名称
-    slave_name = os.ttyname(slave_fd)
-    logger.info(f"📺 Created PTY: {slave_name}")
-
-    # 保存当前终端设置
-    old_settings = termios.tcgetattr(sys.stdin)
-
-    # 在伪终端中运行 Claude
-    claude_cmd = ["claude"]  # 或者从命令行参数获取
-    claude_proc = subprocess.Popen(
-        claude_cmd,
-        stdin=slave_fd,
-        stdout=slave_fd,
-        stderr=slave_fd,
-        start_new_session=True
-    )
-
-    # 关闭 slave_fd（master 端保持打开）
-    os.close(slave_fd)
-
-    # 设置终端为原始模式（用于正确处理输入）
+    # Read from stdin line by line (supports piping from any command)
     try:
-        tty.setraw(sys.stdin.fileno())
+        # Check if stdin is a TTY (interactive) or pipe
+        if sys.stdin.isatty():
+            logger.warning("⚠️ stdin is a TTY (interactive terminal)")
+            logger.info("💡 Usage: command | python bridge.py")
+            logger.info("💡 Example: claude --help | python bridge.py")
+            logger.info("💡 Or: echo 'test output' | python bridge.py")
+        else:
+            logger.info("✅ Reading from stdin pipe...")
 
-        def restore_terminal():
-            """恢复终端设置"""
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+        # Read from stdin line by line in real-time
+        for line in sys.stdin:
+            clean = clean_text(line)
+            if clean:
+                logger.debug(f"📥 Received line: {clean}")
+                bridge.send_chunk(clean)
 
-        # 注册信号处理，确保退出时恢复终端
-        def signal_handler(sig, frame):
-            restore_terminal()
-            os.close(master_fd)
-            if claude_proc.poll() is None:
-                claude_proc.terminate()
-            sys.exit(0)
+        logger.info("✅ Finished reading from stdin")
 
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-
-        # 双向通信循环
-        try:
-            while True:
-                # 检查哪些文件描述符有数据可读
-                ready, _, _ = select.select([master_fd, sys.stdin], [], [], 0.1)
-
-                # 从 Claude 的输出（master_fd）读取
-                if master_fd in ready:
-                    try:
-                        data = os.read(master_fd, 1024)
-                        if not data:
-                            break
-
-                        # 输出到终端
-                        sys.stdout.buffer.write(data)
-                        sys.stdout.buffer.flush()
-
-                        # 处理文本内容，发送给 bridge
-                        try:
-                            text = data.decode('utf-8', errors='replace')
-                            for line in text.splitlines(keepends=True):
-                                clean = clean_text(line)
-                                if clean:
-                                    bridge.send_chunk(clean)
-                        except Exception as e:
-                            logger.debug(f"Error processing text: {e}")
-                    except OSError:
-                        break
-
-                # 从用户输入（stdin）读取，转发给 Claude
-                if sys.stdin in ready:
-                    try:
-                        data = os.read(sys.stdin.fileno(), 1024)
-                        if not data:
-                            break
-                        # 转发给 Claude
-                        os.write(master_fd, data)
-                    except OSError:
-                        break
-
-                # 检查进程是否结束
-                if claude_proc.poll() is not None:
-                    # 读取剩余数据
-                    while True:
-                        ready, _, _ = select.select([master_fd], [], [], 0.1)
-                        if not ready:
-                            break
-                        try:
-                            data = os.read(master_fd, 1024)
-                            if not data:
-                                break
-                            sys.stdout.buffer.write(data)
-                            sys.stdout.buffer.flush()
-                        except OSError:
-                            break
-                    break
-
-        except KeyboardInterrupt:
-            logger.info("⚠️ Interrupted by user")
-        finally:
-            restore_terminal()
-
-    finally:
-        os.close(master_fd)
-        if claude_proc.poll() is None:
-            claude_proc.terminate()
-        claude_proc.wait()
-
-        # 等待所有响应
+        # Wait for all responses before exiting
         logger.info("⏳ Waiting for MCP Server responses...")
         bridge.wait_for_responses(timeout=2.0)
         logger.info("✅ All responses received (or timeout)")
+
+        # Give a small buffer for any final messages
+        time.sleep(0.2)
+
+    except KeyboardInterrupt:
+        logger.info("⚠️ Interrupted by user")
+    except BrokenPipeError:
+        logger.warning("⚠️ Broken pipe (upstream command closed)")
+    except Exception as e:
+        logger.exception(f"❌ Error reading from stdin: {e}")
