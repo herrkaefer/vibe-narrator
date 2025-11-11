@@ -5,6 +5,8 @@ import threading
 import sys
 import time
 import logging
+import os
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,  # Can be changed to DEBUG to see details
@@ -15,15 +17,27 @@ logger = logging.getLogger(__name__)
 
 
 class MCPBridge:
-    def __init__(self, server_cmd=["python", "narrator.py"]):
-        logger.info("🚀 Starting MCP Server subprocess...")
+    def __init__(self, server_cmd=None):
+        # Get the directory where this script is located
+        script_dir = Path(__file__).parent.absolute()
+        narrator_path = script_dir / "narrator.py"
+
+        # Use default command if not provided
+        if server_cmd is None:
+            server_cmd = ["python", str(narrator_path)]
+
+        logger.info(f"🚀 Starting MCP Server subprocess...")
+        logger.info(f"📁 Script directory: {script_dir}")
+        logger.info(f"📄 Narrator path: {narrator_path}")
+
         self.proc = subprocess.Popen(
             server_cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1
+            bufsize=1,
+            cwd=str(script_dir)  # Set working directory to script's directory
         )
         logger.info(f"✅ MCP Server process started (PID: {self.proc.pid})")
 
