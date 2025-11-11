@@ -116,6 +116,14 @@ class MCPBridge:
                 logger.info(f"🟢 MCP Server Response: {line}")
                 msg = json.loads(line)
 
+                # Check if it's a notification (no id field)
+                if "id" not in msg:
+                    method = msg.get("method", "")
+                    if method == "notifications/shutdown":
+                        logger.info(f"🛑 Received shutdown notification from MCP Server: {msg.get('params', {})}")
+                        # 可以在这里做一些清理工作
+                        continue
+
                 # Check if it's an initialize response (id=0)
                 if msg.get("id") == 0 and "result" in msg:
                     self.initialize_response = msg
@@ -162,6 +170,26 @@ class MCPBridge:
             time.sleep(0.1)
         if self.pending_requests:
             logger.warning(f"⚠️ Still waiting for {len(self.pending_requests)} responses: {list(self.pending_requests.keys())}")
+
+    def cleanup(self):
+        """Clean up MCP Server process"""
+        if self.proc.poll() is None:
+            logger.info("🛑 Terminating MCP Server process...")
+            self.proc.terminate()
+            
+            # 给一点时间让 MCP Server 发送 shutdown notification
+            import time
+            time.sleep(0.2)
+            
+            try:
+                self.proc.wait(timeout=1.8)  # 总共 2 秒，已经等了 0.2 秒
+            except subprocess.TimeoutExpired:
+                logger.warning("⚠️ MCP Server didn't terminate, forcing kill...")
+                self.proc.kill()
+                self.proc.wait()
+            logger.info("✅ MCP Server process terminated")
+        else:
+            logger.info(f"✅ MCP Server process already exited (code: {self.proc.returncode})")
 
 
 def clean_ansi_codes(text: str) -> str:
@@ -644,7 +672,9 @@ Examples:
             cmd_proc.terminate()
         cmd_proc.wait()
 
+        # 清理 MCP Server
+        bridge.cleanup()
+
         # 等待所有响应
-        # logger.info("⏳ Waiting for MCP Server responses...")
         bridge.wait_for_responses(timeout=2.0)
         logger.info("✅ All responses received (or timeout)")
