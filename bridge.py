@@ -31,6 +31,10 @@ class MCPBridge:
         self.initialize_event = threading.Event()
         self.initialize_response = None
 
+        # Track pending requests to wait for responses
+        self.pending_requests = {}  # id -> timestamp
+        self.responses_received = {}  # id -> response
+
         # Listening threads
         threading.Thread(target=self._listen_stdout, name="ServerStdout", daemon=True).start()
         threading.Thread(target=self._listen_stderr, name="ServerStderr", daemon=True).start()
@@ -78,6 +82,7 @@ class MCPBridge:
             if not line:
                 continue
             try:
+                # logger.info(f"🟢 MCP Server Response: {line}")
                 msg = json.loads(line)
 
                 # Check if it's an initialize response (id=0)
@@ -86,7 +91,14 @@ class MCPBridge:
                     self.initialize_event.set()
                     logger.info(f"✅ Received initialize response: {msg.get('result', {})}")
 
-                logger.info(f"🟢 MCP Server Response: {msg}")
+                # Track tool call responses
+                response_id = msg.get("id")
+                if response_id is not None:
+                    self.responses_received[response_id] = msg
+                    if response_id in self.pending_requests:
+                        del self.pending_requests[response_id]
+                    logger.info(f"🟢 MCP Server Response (id={response_id}): {msg}")
+
             except json.JSONDecodeError:
                 logger.warning(f"⚠️ Non-JSON output from MCP Server: {line}")
 
@@ -108,8 +120,17 @@ class MCPBridge:
                 }
             }
         }
+        self.pending_requests[req["id"]] = time.time()
         self._send(req)
         logger.info(f"📤 Sent text chunk to MCP Server: {text}")
+
+    def wait_for_responses(self, timeout=5.0):
+        """Wait for all pending requests to receive responses"""
+        start_time = time.time()
+        while self.pending_requests and (time.time() - start_time) < timeout:
+            time.sleep(0.1)
+        if self.pending_requests:
+            logger.warning(f"⚠️ Still waiting for {len(self.pending_requests)} responses: {list(self.pending_requests.keys())}")
 
 
 def clean_text(line: str) -> str:
@@ -131,12 +152,47 @@ def simulate_coding_output():
 
 
 if __name__ == "__main__":
+    import select  # For checking if stdin has data (Unix only)
+
     logger.info("🧩 Starting MCP Bridge...")
+    logger.info("📥 Reading from stdin (use pipe: command | python bridge.py)")
+
     bridge = MCPBridge()
 
-    # Simulate real-time output (will be replaced with Claude Code real-time stdout in the future)
-    for line in simulate_coding_output():
-        clean = clean_text(line)
-        if clean:
-            logger.debug(f"➡️ Cleaned line: {clean}")
-            bridge.send_chunk(clean)
+    # Wait a bit for MCP Server to be ready
+    time.sleep(0.5)
+
+    # Read from stdin line by line (supports piping from any command)
+    try:
+        # Check if stdin is a TTY (interactive) or pipe
+        if sys.stdin.isatty():
+            logger.warning("⚠️ stdin is a TTY (interactive terminal)")
+            logger.info("💡 Usage: command | python bridge.py")
+            logger.info("💡 Example: claude --help | python bridge.py")
+            logger.info("💡 Or: echo 'test output' | python bridge.py")
+        else:
+            logger.info("✅ Reading from stdin pipe...")
+
+        # Read from stdin line by line in real-time
+        for line in sys.stdin:
+            clean = clean_text(line)
+            if clean:
+                logger.debug(f"📥 Received line: {clean}")
+                bridge.send_chunk(clean)
+
+        logger.info("✅ Finished reading from stdin")
+
+        # Wait for all responses before exiting
+        logger.info("⏳ Waiting for MCP Server responses...")
+        bridge.wait_for_responses(timeout=2.0)
+        logger.info("✅ All responses received (or timeout)")
+
+        # Give a small buffer for any final messages
+        time.sleep(0.2)
+
+    except KeyboardInterrupt:
+        logger.info("⚠️ Interrupted by user")
+    except BrokenPipeError:
+        logger.warning("⚠️ Broken pipe (upstream command closed)")
+    except Exception as e:
+        logger.exception(f"❌ Error reading from stdin: {e}")
