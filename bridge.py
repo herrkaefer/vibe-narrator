@@ -173,6 +173,7 @@ def clean_ansi_codes(text: str) -> str:
     - 样式代码：\x1b[0m (重置), \x1b[1m (粗体), \x1b[2m (暗淡), 等
     - 光标控制：\x1b[K (清除到行尾), \x1b[J (清除屏幕), 等
     - DEC 私有模式序列：\x1b[?数字h/l (如 [?25l, [?2004h 等)
+    - OSC 序列：\x1b]数字;...\x07 或 \x1b]数字;...\x1b\\ (如 ]0;title, ]9;command)
     - 通用格式：\x1b[...m 或 \033[...m
 
     Args:
@@ -184,21 +185,27 @@ def clean_ansi_codes(text: str) -> str:
     if not text:
         return text
 
-    # 移除所有 ANSI 转义序列（包括 DEC 私有模式）
-    # 匹配模式：
-    # 1. \x1b[ 或 \033[ 开头的序列（包括 DEC 私有模式 [?数字h/l）
-    # 2. 单独的 [ 开头的序列（如果前缀被移除，如 [?25l）
-    # 3. 所有以 ESC 字符开头的控制序列
+    # 移除 OSC (Operating System Command) 序列
+    # 完整格式：\x1b]数字;文本\x07 或 \x1b]数字;文本\x1b\\
+    # 但可能被分割，只剩下 ]数字;文本 或 ]数字;
+    osc_patterns = [
+        r'\x1b\]\d+;.*?(\x07|\x1b\\)',  # 完整的 OSC 序列（带前缀）
+        r'\033\]\d+;.*?(\x07|\x1b\\)',  # 八进制形式
+        r'\]\d+;.*?(\x07|\x1b\\)',      # 前缀已移除的 OSC 序列（带结尾）
+        r'\]\d+;[^\n]*',                 # 前缀和结尾都移除的 OSC 序列（]数字;后面到行尾）
+    ]
 
-    # 匹配完整的 ANSI 序列（包括 DEC 私有模式）
+    # 移除所有 ANSI 转义序列（包括 DEC 私有模式和 OSC）
     ansi_patterns = [
         r'\x1b\[[0-9;]*[a-zA-Z]',           # 标准 ANSI 序列
-        r'\x1b\[[?][0-9;]*[hHlL]',          # DEC 私有模式序列 \x1b[?数字h/l
-        r'\033\[[0-9;]*[a-zA-Z]',            # 标准 ANSI 序列（八进制形式）
-        r'\033\[[?][0-9;]*[hHlL]',           # DEC 私有模式序列（八进制形式）
-        r'\[[?][0-9;]*[hHlL]',               # 单独的 DEC 私有模式序列（前缀已移除）
-        r'\[[0-9;]*[a-zA-Z]',                 # 单独的 ANSI 序列（前缀已移除）
-    ]
+        r'\x1b\[[?][0-9;]*[hHlL]',          # DEC 私有模式序列
+        r'\033\[[0-9;]*[a-zA-Z]',            # 标准 ANSI 序列（八进制）
+        r'\033\[[?][0-9;]*[hHlL]',           # DEC 私有模式序列（八进制）
+        r'\[[?][0-9;]*[hHlL]',               # 单独的 DEC 私有模式序列
+        r'\[[0-9;]*[a-zA-Z]',                 # 单独的 ANSI 序列
+        r'\[[0-9;]+',                         # 不完整的 ANSI 序列（如 [38;2;102;102）
+        r'^[;0-9]+m',                         # 序列的继续部分（如 ;102m）
+    ] + osc_patterns
 
     # 组合所有模式
     ansi_escape = re.compile('|'.join(ansi_patterns))
@@ -207,6 +214,11 @@ def clean_ansi_codes(text: str) -> str:
     # 移除其他常见的控制字符（但保留换行符、制表符等有用的）
     # 移除退格、回车（单独出现时）、响铃等
     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+
+    # 移除乱码字符（替换字符 U+FFFD）
+    text = text.replace('\ufffd', '')
+    # 移除其他无效的 Unicode 字符
+    text = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff]', '', text)
 
     return text
 
@@ -231,14 +243,36 @@ def filter_ui_elements(text: str) -> str:
             continue
 
         # 1. 过滤用户输入（以 > 开头的行）
-        if line.startswith('>'):
-            continue
+        # if line.startswith('>'):
+        #     continue
 
         # 2. 过滤以问号开头的 Claude Code 提示（如 "? for shortcuts"）
         if line.startswith('?'):
             continue
 
-        # 2. 过滤分隔线（主要是 - 或 = 的长行）
+        # 3. 过滤 OSC 序列残留（如 "]0; Display Circle", "]9;"）
+        if re.match(r'^\]\d+;', line.strip()):
+            continue
+
+        # 4. 过滤 UI 提示文本
+        ui_patterns = [
+            r'^Thinking on \(tab to toggle\)',
+            r'^\(esc to interrupt\)',
+            r'^\(esc to interrupt',
+            r'^Thought for \d+s',
+            r'^ctrl\+o to show thinking',
+            r'^ctrlo to show thinking',
+            r'^Tip: Type',
+            r'^Showing detailed transcript',
+            r'^CtrlO to toggle',
+            r'^accept edits on',
+            r'^shift\+tab to cycle',
+            r'^ctrl-g to edit prompt in vi',
+        ]
+        if any(re.match(pattern, line, re.IGNORECASE) for pattern in ui_patterns):
+            continue
+
+        # 5. 过滤分隔线（主要是 - 或 = 的长行）
         if len(line) > 20:
             line_chars = set(line.replace(' ', ''))
             separator_chars = set('-=─━')
@@ -246,7 +280,7 @@ def filter_ui_elements(text: str) -> str:
                (len(line_chars & separator_chars) > 0 and len(line_chars - separator_chars) <= 2):
                 continue
 
-        # 3. 只保留自然语言字符
+        # 6. 只保留自然语言字符
         filtered_chars = []
         for char in line:
             cat = unicodedata.category(char)
@@ -260,6 +294,9 @@ def filter_ui_elements(text: str) -> str:
             # 保留空格（Zs = Space Separator）
             elif cat == 'Zs':
                 filtered_chars.append(char)
+            # 保留竖线字符（显式保留，确保不被过滤）
+            elif char == '|':
+                filtered_chars.append(char)
             # 保留常见文本标点（P* = Punctuation，但需要筛选）
             elif cat.startswith('P'):
                 # 保留常见标点符号
@@ -268,10 +305,16 @@ def filter_ui_elements(text: str) -> str:
                 # 保留中文标点范围
                 elif '\u3000' <= char <= '\u303f' or '\uff00' <= char <= '\uffef':
                     filtered_chars.append(char)
+            # 暂时保留分隔线字符（用于检查模式）
+            elif char in '-=─━':
+                filtered_chars.append(char)
+            # 暂时保留 > 字符（用于检查用户输入）
+            elif char == '>':
+                filtered_chars.append(char)
 
         line = ''.join(filtered_chars)
 
-        # 4. 清理多余空白
+        # 7. 清理多余空白
         line = re.sub(r'\s+', ' ', line).strip()
 
         if line:
@@ -312,6 +355,114 @@ def simulate_coding_output():
     for s in samples:
         yield s
         time.sleep(1)
+
+
+class TextBuffer:
+    """
+    文本缓冲区，累积数据并记录时间戳，用于决定发送时机
+    确保只在行边界处发送，避免在行中间切断
+    """
+    def __init__(self, min_window_seconds=1.0, pause_threshold=2.0):
+        self.buffer = ""  # 累积的文本数据
+        self.window_start_time = None  # 当前窗口开始时间
+        self.last_data_time = None  # 最后一次数据到达时间
+        self.min_window_seconds = min_window_seconds  # 最小累积时间：1秒
+        self.pause_threshold = pause_threshold  # 停顿阈值：2秒
+
+    def add_data(self, text: str, current_time: float):
+        """添加新数据到缓冲区，记录时间戳"""
+        self.buffer += text
+        if self.window_start_time is None:
+            self.window_start_time = current_time
+        self.last_data_time = current_time
+
+    def has_complete_lines(self) -> bool:
+        """检查缓冲区是否有完整的行（以换行符结尾）"""
+        return self.buffer and '\n' in self.buffer
+
+    def should_flush(self, current_time: float) -> bool:
+        """
+        判断是否应该刷新缓冲区
+
+        返回 True 的情况：
+        1. 缓冲区有完整行，且累积时间 >= 最小时间窗口（1秒）
+        2. 距离上次数据到达超过停顿阈值（2秒），且有完整行
+        3. 距离上次数据到达超过停顿阈值（2秒），且缓冲区很大（即使没有完整行，也要发送）
+        """
+        if not self.buffer:
+            return False
+
+        has_complete = self.has_complete_lines()
+
+        # 检查是否超过最小时间窗口（必须有完整行）
+        if self.window_start_time and \
+           (current_time - self.window_start_time) >= self.min_window_seconds:
+            if has_complete:
+                return True
+
+        # 检查是否超过停顿阈值
+        if self.last_data_time and \
+           (current_time - self.last_data_time) >= self.pause_threshold:
+            # 如果有完整行，或者缓冲区很大（超过一定大小），就发送
+            if has_complete or len(self.buffer) > 4096:
+                return True
+
+        return False
+
+    def flush(self) -> str:
+        """
+        刷新缓冲区，返回完整的行，保留不完整的行在缓冲区中
+
+        返回空字符串表示没有完整的行可发送
+        """
+        if not self.buffer:
+            return ""
+
+        # 找到最后一个换行符的位置
+        last_newline = self.buffer.rfind('\n')
+
+        if last_newline == -1:
+            # 没有换行符，不发送（除非缓冲区很大，在停顿阈值情况下）
+            if len(self.buffer) > 4096:
+                # 缓冲区很大但没有换行符，可能是单行很长，发送全部
+                result = self.buffer
+                self.buffer = ""
+                self.window_start_time = None
+                self.last_data_time = None
+                return result
+            return ""
+
+        # 发送到最后一个换行符为止的完整行
+        result = self.buffer[:last_newline + 1]  # 包含换行符
+        self.buffer = self.buffer[last_newline + 1:]  # 保留不完整的行
+
+        # 如果缓冲区清空了，重置时间戳
+        if not self.buffer:
+            self.window_start_time = None
+            self.last_data_time = None
+        else:
+            # 如果还有剩余数据，更新窗口开始时间（从剩余数据开始计算）
+            self.window_start_time = time.time()
+
+        return result
+
+    def has_data(self) -> bool:
+        """检查缓冲区是否有数据"""
+        return bool(self.buffer)
+
+    def flush_all(self) -> str:
+        """
+        强制刷新所有缓冲区内容（用于程序结束时）
+        即使没有完整行也发送
+        """
+        if not self.buffer:
+            return ""
+
+        result = self.buffer
+        self.buffer = ""
+        self.window_start_time = None
+        self.last_data_time = None
+        return result
 
 
 if __name__ == "__main__":
@@ -386,9 +537,22 @@ Examples:
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
+        # 初始化文本缓冲区
+        text_buffer = TextBuffer(min_window_seconds=1.0, pause_threshold=2.0)
+
         # 双向通信循环
         try:
             while True:
+                current_time = time.time()
+
+                # 检查是否应该刷新缓冲区（即使没有新数据）
+                if text_buffer.should_flush(current_time):
+                    buffered_text = text_buffer.flush()
+                    if buffered_text:
+                        clean = clean_text(buffered_text)
+                        if clean:
+                            bridge.send_chunk(clean)
+
                 # 检查哪些文件描述符有数据可读
                 ready, _, _ = select.select([master_fd, sys.stdin], [], [], 0.1)
 
@@ -403,12 +567,19 @@ Examples:
                         sys.stdout.buffer.write(data)
                         sys.stdout.buffer.flush()
 
-                        # 处理文本内容，发送给 bridge
+                        # 添加到缓冲区（不立即处理）
                         try:
                             text = data.decode('utf-8', errors='replace')
-                            clean = clean_text(text)
-                            if clean:
-                                bridge.send_chunk(clean)
+                            current_time = time.time()
+                            text_buffer.add_data(text, current_time)
+
+                            # 检查是否应该刷新
+                            if text_buffer.should_flush(current_time):
+                                buffered_text = text_buffer.flush()
+                                if buffered_text:
+                                    clean = clean_text(buffered_text)
+                                    if clean:
+                                        bridge.send_chunk(clean)
                         except Exception as e:
                             logger.debug(f"Error processing text: {e}")
                     except OSError:
@@ -439,19 +610,33 @@ Examples:
                             sys.stdout.buffer.write(data)
                             sys.stdout.buffer.flush()
 
-                            # 处理剩余数据，发送给 bridge
+                            # 添加到缓冲区
                             text = data.decode('utf-8', errors='replace')
-                            clean = clean_text(text)
-                            if clean:
-                                bridge.send_chunk(clean)
+                            current_time = time.time()
+                            text_buffer.add_data(text, current_time)
                         except OSError:
                             break
+
+                    # 处理剩余缓冲区
+                    buffered_text = text_buffer.flush_all()
+                    if buffered_text:
+                        clean = clean_text(buffered_text)
+                        if clean:
+                            bridge.send_chunk(clean)
                     break
 
         except KeyboardInterrupt:
             logger.info("⚠️ Interrupted by user")
         finally:
             restore_terminal()
+
+            # 处理最后剩余的缓冲区
+            if text_buffer.has_data():
+                buffered_text = text_buffer.flush_all()
+                if buffered_text:
+                    clean = clean_text(buffered_text)
+                    if clean:
+                        bridge.send_chunk(clean)
 
     finally:
         os.close(master_fd)
