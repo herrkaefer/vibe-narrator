@@ -127,7 +127,7 @@ class MCPBridge:
                     self.responses_received[response_id] = msg
                     if response_id in self.pending_requests:
                         del self.pending_requests[response_id]
-                    logger.info(f"🟢 MCP Server Response (id={response_id}): {msg}")
+                    # logger.info(f"🟢 MCP Server Response (id={response_id}): {msg}")
 
             except json.JSONDecodeError:
                 logger.warning(f"⚠️ Non-JSON output from MCP Server: {line}")
@@ -329,6 +329,6 @@ Examples:
         cmd_proc.wait()
 
         # 等待所有响应
-        logger.info("⏳ Waiting for MCP Server responses...")
+        # logger.info("⏳ Waiting for MCP Server responses...")
         bridge.wait_for_responses(timeout=2.0)
         logger.info("✅ All responses received (or timeout)")
