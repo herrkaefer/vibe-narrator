@@ -6,6 +6,7 @@ import sys
 import time
 import logging
 import os
+import re
 from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -152,7 +153,7 @@ class MCPBridge:
         }
         self.pending_requests[req["id"]] = time.time()
         self._send(req)
-        logger.info(f"📤 Sent text chunk to MCP Server: {text}")
+        logger.info(f"📤 Sent text chunk to MCP Server:\n{text}")
 
     def wait_for_responses(self, timeout=5.0):
         """Wait for all pending requests to receive responses"""
@@ -163,9 +164,71 @@ class MCPBridge:
             logger.warning(f"⚠️ Still waiting for {len(self.pending_requests)} responses: {list(self.pending_requests.keys())}")
 
 
-def clean_text(line: str) -> str:
-    """Simple cleanup of Claude Code output (extensible)"""
-    return line.strip()
+def clean_ansi_codes(text: str) -> str:
+    """
+    清理 ANSI 转义序列（颜色代码、格式化字符等），还原纯文本
+
+    移除的 ANSI 序列包括：
+    - 颜色代码：\x1b[30m - \x1b[37m (前景色), \x1b[40m - \x1b[47m (背景色)
+    - 样式代码：\x1b[0m (重置), \x1b[1m (粗体), \x1b[2m (暗淡), 等
+    - 光标控制：\x1b[K (清除到行尾), \x1b[J (清除屏幕), 等
+    - DEC 私有模式序列：\x1b[?数字h/l (如 [?25l, [?2004h 等)
+    - 通用格式：\x1b[...m 或 \033[...m
+
+    Args:
+        text: 包含 ANSI 转义序列的文本
+
+    Returns:
+        清理后的纯文本
+    """
+    if not text:
+        return text
+
+    # 移除所有 ANSI 转义序列（包括 DEC 私有模式）
+    # 匹配模式：
+    # 1. \x1b[ 或 \033[ 开头的序列（包括 DEC 私有模式 [?数字h/l）
+    # 2. 单独的 [ 开头的序列（如果前缀被移除，如 [?25l）
+    # 3. 所有以 ESC 字符开头的控制序列
+
+    # 匹配完整的 ANSI 序列（包括 DEC 私有模式）
+    ansi_patterns = [
+        r'\x1b\[[0-9;]*[a-zA-Z]',           # 标准 ANSI 序列
+        r'\x1b\[[?][0-9;]*[hHlL]',          # DEC 私有模式序列 \x1b[?数字h/l
+        r'\033\[[0-9;]*[a-zA-Z]',            # 标准 ANSI 序列（八进制形式）
+        r'\033\[[?][0-9;]*[hHlL]',           # DEC 私有模式序列（八进制形式）
+        r'\[[?][0-9;]*[hHlL]',               # 单独的 DEC 私有模式序列（前缀已移除）
+        r'\[[0-9;]*[a-zA-Z]',                 # 单独的 ANSI 序列（前缀已移除）
+    ]
+
+    # 组合所有模式
+    ansi_escape = re.compile('|'.join(ansi_patterns))
+    text = ansi_escape.sub('', text)
+
+    # 移除其他常见的控制字符（但保留换行符、制表符等有用的）
+    # 移除退格、回车（单独出现时）、响铃等
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+
+    return text
+
+
+def clean_text(text: str) -> str:
+    """
+    清理 Claude Code 输出，移除 ANSI 转义序列和多余空白
+
+    先清理 ANSI 代码，然后去除首尾空白，最后发送给 MCP
+    """
+    # return text # testing...
+
+    if not text:
+        return ""
+
+    # 先清理 ANSI 转义序列
+    cleaned = clean_ansi_codes(text)
+
+    # 去除首尾空白
+    cleaned = cleaned.strip()
+
+    return cleaned
 
 
 def simulate_coding_output():
@@ -273,10 +336,9 @@ Examples:
                         # 处理文本内容，发送给 bridge
                         try:
                             text = data.decode('utf-8', errors='replace')
-                            for line in text.splitlines(keepends=True):
-                                clean = clean_text(line)
-                                if clean:
-                                    bridge.send_chunk(clean)
+                            clean = clean_text(text)
+                            if clean:
+                                bridge.send_chunk(clean)
                         except Exception as e:
                             logger.debug(f"Error processing text: {e}")
                     except OSError:
@@ -309,10 +371,9 @@ Examples:
 
                             # 处理剩余数据，发送给 bridge
                             text = data.decode('utf-8', errors='replace')
-                            for line in text.splitlines(keepends=True):
-                                clean = clean_text(line)
-                                if clean:
-                                    bridge.send_chunk(clean)
+                            clean = clean_text(text)
+                            if clean:
+                                bridge.send_chunk(clean)
                         except OSError:
                             break
                     break
