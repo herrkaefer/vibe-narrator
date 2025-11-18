@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
+import unicodedata
 
 # Get script directory for storing log files
 script_dir = Path(__file__).parent.absolute()
@@ -251,8 +252,6 @@ def clean_ansi_codes(text: str) -> str:
     return text
 
 
-import unicodedata
-
 def filter_ui_elements(text: str) -> str:
     """
     Keep only natural language characters, filter out all special characters, icons, UI elements, etc.
@@ -352,6 +351,7 @@ def filter_ui_elements(text: str) -> str:
             filtered_lines.append(line)
 
     return '\n'.join(filtered_lines)
+
 
 def clean_text(text: str) -> str:
     """
