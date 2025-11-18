@@ -7,6 +7,9 @@ import time
 import logging
 import os
 import re
+import fcntl
+import struct
+import shutil
 from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -20,7 +23,7 @@ os.makedirs(script_dir / "logs", exist_ok=True)
 # Configure logging output to file
 logging.basicConfig(
     level=logging.INFO,  # Can be changed to DEBUG to see details
-    format="%(asctime)s [%(levelname)s] %(threadName)s: %(message)s",
+    format="%(asctime)s [%(levelname)s]: %(message)s",
     handlers=[
         RotatingFileHandler(
             log_file,
@@ -218,31 +221,28 @@ def clean_ansi_codes(text: str) -> str:
     # Full format: \x1b]number;text\x07 or \x1b]number;text\x1b\\
     # But may be split, leaving only ]number;text or ]number;
     osc_patterns = [
-        r'\x1b\]\d+;.*?(\x07|\x1b\\)',  # Complete OSC sequence (with prefix)
-        r'\033\]\d+;.*?(\x07|\x1b\\)',  # Octal form
-        r'\]\d+;.*?(\x07|\x1b\\)',      # OSC sequence with prefix removed (with ending)
-        r'\]\d+;[^\n]*',                 # OSC sequence with both prefix and ending removed (]number; to end of line)
+        r'\x1b\][^\x07\x1b]*?(\x07|\x1b\\)',  # Complete OSC sequence (with prefix)
+        r'\033\][^\x07\x1b]*?(\x07|\x1b\\)',  # Octal form
+        r'\][^\x07\x1b]*?(\x07|\x1b\\)',      # OSC sequence with prefix removed (with ending)
+        r'\][^\n]*',                 # OSC sequence with both prefix and ending removed (]number; to end of line)
     ]
 
-    # Remove all ANSI escape sequences (including DEC private mode and OSC)
+    # Comprehensive ANSI escape patterns (CSI, OSC, and single-character ESC sequences)
     ansi_patterns = [
-        r'\x1b\[[0-9;]*[a-zA-Z]',           # Standard ANSI sequence
-        r'\x1b\[[?][0-9;]*[hHlL]',          # DEC private mode sequence
-        r'\033\[[0-9;]*[a-zA-Z]',            # Standard ANSI sequence (octal)
-        r'\033\[[?][0-9;]*[hHlL]',           # DEC private mode sequence (octal)
-        r'\[[?][0-9;]*[hHlL]',               # Standalone DEC private mode sequence
-        r'\[[0-9;]*[a-zA-Z]',                 # Standalone ANSI sequence
-        r'\[[0-9;]+',                         # Incomplete ANSI sequence (e.g. [38;2;102;102)
-        r'^[;0-9]+m',                         # Continuation of sequence (e.g. ;102m)
+        r'\x1b\[[0-9;:?<>]*[ -/]*[@-~]',    # ESC [ ... command (handles private parameters)
+        r'\033\[[0-9;:?<>]*[ -/]*[@-~]',    # Octal ESC [ ...
+        r'\x1b[\x20-\x2f]*[@-~]',          # Single-character ESC sequences (e.g., ESC M)
+        r'\033[\x20-\x2f]*[@-~]',          # Octal single-character ESC sequences
+        r'\x9b[0-9;:?<>]*[ -/]*[@-~]',       # CSI in single-byte form
+        r'\x08+',                             # Backspace runs
     ] + osc_patterns
 
     # Combine all patterns
     ansi_escape = re.compile('|'.join(ansi_patterns))
     text = ansi_escape.sub('', text)
 
-    # Remove other common control characters (but keep useful ones like newlines, tabs)
-    # Remove backspace, carriage return (when standalone), bell, etc.
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    # Remove other common control characters (but keep newlines/tabs so transcripts stay readable)
+    text = re.sub(r'[\x00-\x07\x0b\x0c\x0e-\x1f\x7f]', '', text)
 
     # Remove garbled characters (replacement character U+FFFD)
     text = text.replace('\ufffd', '')
@@ -367,7 +367,7 @@ def clean_text(text: str) -> str:
     # First clean ANSI escape sequences
     cleaned = clean_ansi_codes(text)
 
-    cleaned = filter_ui_elements(cleaned)
+    # cleaned = filter_ui_elements(cleaned)
 
     # Remove leading/trailing whitespace
     cleaned = cleaned.strip()
@@ -504,6 +504,34 @@ if __name__ == "__main__":
     import signal
     import argparse
 
+    def _get_terminal_window_size():
+        """Return the host terminal (rows, cols), falling back to 24x80."""
+        if sys.stdin.isatty():
+            try:
+                packed = fcntl.ioctl(
+                    sys.stdin.fileno(),
+                    termios.TIOCGWINSZ,
+                    struct.pack('HHHH', 0, 0, 0, 0)
+                )
+                rows, cols, _, _ = struct.unpack('HHHH', packed)
+                if rows and cols:
+                    return rows, cols
+            except OSError as exc:
+                logger.debug(f"Failed to query terminal size: {exc}")
+
+        fallback = shutil.get_terminal_size(fallback=(80, 24))
+        return fallback.lines, fallback.columns
+
+    def _sync_pty_window_size(master_fd):
+        """Propagate the host terminal window size to the PTY."""
+        rows, cols = _get_terminal_window_size()
+        winsize = struct.pack('HHHH', rows, cols, 0, 0)
+        try:
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+            logger.debug(f"Updated PTY window size to {cols}x{rows}")
+        except OSError as exc:
+            logger.debug(f"Failed to update PTY window size: {exc}")
+
     parser = argparse.ArgumentParser(
         description='MCP Bridge - Run command in PTY and forward output to MCP server',
         epilog='''
@@ -526,6 +554,9 @@ Examples:
 
     # Create a pseudo terminal pair
     master_fd, slave_fd = pty.openpty()
+
+    # Propagate the current terminal size to the PTY so interactive UIs render correctly
+    _sync_pty_window_size(master_fd)
 
     # Get terminal name
     slave_name = os.ttyname(slave_fd)
@@ -567,6 +598,13 @@ Examples:
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
+
+        # Keep PTY size in sync with local terminal resizes
+        if hasattr(signal, 'SIGWINCH'):
+            def _handle_winch(sig, frame):
+                _sync_pty_window_size(master_fd)
+
+            signal.signal(signal.SIGWINCH, _handle_winch)
 
         # Initialize text buffer
         text_buffer = TextBuffer(min_window_seconds=1.0, pause_threshold=2.0)
