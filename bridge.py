@@ -15,6 +15,109 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 import unicodedata
 
+
+class _AnsiCleaner:
+    """Stateful ANSI escape sequence stripper."""
+
+    def __init__(self):
+        self.state = 'text'
+
+    def reset(self):
+        self.state = 'text'
+
+    def clean(self, text: str) -> str:
+        result = []
+        state = self.state
+
+        for ch in text:
+            code = ord(ch)
+
+            if state == 'text':
+                if ch == '\x1b':
+                    state = 'esc'
+                    continue
+                if code == 0x9b:  # single-byte CSI
+                    state = 'csi'
+                    continue
+                if code in (0x90, 0x98, 0x9e, 0x9f):  # DCS, SOS, PM, APC
+                    state = 'string'
+                    continue
+                if code == 0x9d:  # OSC
+                    state = 'osc'
+                    continue
+                if code < 0x20 and ch not in ('\n', '\t'):
+                    continue
+                result.append(ch)
+                continue
+
+            if state == 'esc':
+                if ch == '[':
+                    state = 'csi'
+                elif ch == ']':
+                    state = 'osc'
+                elif ch in ('P', 'X', '^', '_'):
+                    state = 'string'
+                elif ch == '\\':
+                    state = 'text'
+                elif ' ' <= ch <= '/':
+                    state = 'esc_inter'
+                else:
+                    # Any final byte (including single-char ESC sequences)
+                    state = 'text'
+                continue
+
+            if state == 'esc_inter':
+                if '@' <= ch <= '~':
+                    state = 'text'
+                continue
+
+            if state == 'csi':
+                if ch == '\x1b':
+                    # stray ESC resets state machine
+                    state = 'esc'
+                    continue
+                if 0x40 <= code <= 0x7e:
+                    state = 'text'
+                continue
+
+            if state == 'osc':
+                if ch == '\x07' or ch == '\x9c':
+                    state = 'text'
+                elif ch == '\x1b':
+                    state = 'osc_esc'
+                continue
+
+            if state == 'osc_esc':
+                if ch in ('\\', '\x07', '\x9c'):
+                    state = 'text'
+                elif ch == '\x1b':
+                    state = 'osc_esc'
+                else:
+                    state = 'osc'
+                continue
+
+            if state == 'string':
+                if ch in ('\x07', '\x9c'):
+                    state = 'text'
+                elif ch == '\x1b':
+                    state = 'string_esc'
+                continue
+
+            if state == 'string_esc':
+                if ch in ('\\', '\x07', '\x9c'):
+                    state = 'text'
+                elif ch == '\x1b':
+                    state = 'string_esc'
+                else:
+                    state = 'string'
+                continue
+
+        self.state = state
+        return ''.join(result)
+
+
+_ansi_cleaner = _AnsiCleaner()
+
 # Get script directory for storing log files
 script_dir = Path(__file__).parent.absolute()
 log_file = script_dir / "logs" / f"bridge_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -217,39 +320,17 @@ def clean_ansi_codes(text: str) -> str:
     if not text:
         return text
 
-    # Remove OSC (Operating System Command) sequences
-    # Full format: \x1b]number;text\x07 or \x1b]number;text\x1b\\
-    # But may be split, leaving only ]number;text or ]number;
-    osc_patterns = [
-        r'\x1b\][^\x07\x1b]*?(\x07|\x1b\\)',  # Complete OSC sequence (with prefix)
-        r'\033\][^\x07\x1b]*?(\x07|\x1b\\)',  # Octal form
-        r'\][^\x07\x1b]*?(\x07|\x1b\\)',      # OSC sequence with prefix removed (with ending)
-        r'\][^\n]*',                 # OSC sequence with both prefix and ending removed (]number; to end of line)
-    ]
-
-    # Comprehensive ANSI escape patterns (CSI, OSC, and single-character ESC sequences)
-    ansi_patterns = [
-        r'\x1b\[[0-9;:?<>]*[ -/]*[@-~]',    # ESC [ ... command (handles private parameters)
-        r'\033\[[0-9;:?<>]*[ -/]*[@-~]',    # Octal ESC [ ...
-        r'\x1b[\x20-\x2f]*[@-~]',          # Single-character ESC sequences (e.g., ESC M)
-        r'\033[\x20-\x2f]*[@-~]',          # Octal single-character ESC sequences
-        r'\x9b[0-9;:?<>]*[ -/]*[@-~]',       # CSI in single-byte form
-        r'\x08+',                             # Backspace runs
-    ] + osc_patterns
-
-    # Combine all patterns
-    ansi_escape = re.compile('|'.join(ansi_patterns))
-    text = ansi_escape.sub('', text)
+    cleaned = _ansi_cleaner.clean(text)
 
     # Remove other common control characters (but keep newlines/tabs so transcripts stay readable)
-    text = re.sub(r'[\x00-\x07\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    cleaned = re.sub(r'[\x00-\x07\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
 
     # Remove garbled characters (replacement character U+FFFD)
-    text = text.replace('\ufffd', '')
+    cleaned = cleaned.replace('\ufffd', '')
     # Remove other invalid Unicode characters
-    text = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff]', '', text)
+    cleaned = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff]', '', cleaned)
 
-    return text
+    return cleaned
 
 
 def filter_ui_elements(text: str) -> str:
@@ -399,6 +480,31 @@ class TextBuffer:
         self.last_data_time = None  # Time of last data arrival
         self.min_window_seconds = min_window_seconds  # Minimum accumulation time: 1 second
         self.pause_threshold = pause_threshold  # Pause threshold: 2 seconds
+        self.force_flush_all = False  # When True, flush() will send entire buffer
+
+    def _split_incomplete_escape_tail(self, text: str):
+        """Return (safe_text, tail) ensuring we don't cut through ANSI sequences."""
+        if not text:
+            return text, ""
+
+        tail_patterns = [
+            # OSC without terminator
+            '(\x1b][^\x07\x1b]*)$',
+            # CSI (ESC[ or single-byte CSI) missing final command
+            '((?:\x1b\[|\x9b)[0-9;:?<>]*[ -/]*)$',
+            # ESC with intermediates only
+            '(\x1b[\x20-\x2f]*)$',
+            # Lone ESC
+            '(\x1b)$',
+        ]
+
+        for pattern in tail_patterns:
+            match = re.search(pattern, text)
+            if match:
+                start = match.start()
+                return text[:start], text[start:]
+
+        return text, ""
 
     def add_data(self, text: str, current_time: float):
         """Add new data to buffer, record timestamp"""
@@ -429,13 +535,18 @@ class TextBuffer:
         if self.window_start_time and \
            (current_time - self.window_start_time) >= self.min_window_seconds:
             if has_complete:
+                self.force_flush_all = False
                 return True
 
         # Check if pause threshold is exceeded
         if self.last_data_time and \
            (current_time - self.last_data_time) >= self.pause_threshold:
-            # Send if has complete lines, or buffer is very large (exceeds certain size)
-            if has_complete or len(self.buffer) > 4096:
+            if has_complete:
+                self.force_flush_all = False
+                return True
+            if len(self.buffer) > 0:
+                # No newline yet, but we've been idle long enough—flush everything to avoid stale text
+                self.force_flush_all = True
                 return True
 
         return False
@@ -452,30 +563,36 @@ class TextBuffer:
         # Find the position of the last newline
         last_newline = self.buffer.rfind('\n')
 
-        if last_newline == -1:
-            # No newline, don't send (unless buffer is very large, in pause threshold case)
-            if len(self.buffer) > 4096:
-                # Buffer is very large but no newline, possibly a very long single line, send all
-                result = self.buffer
-                self.buffer = ""
-                self.window_start_time = None
-                self.last_data_time = None
-                return result
-            return ""
-
-        # Send complete lines up to the last newline
-        result = self.buffer[:last_newline + 1]  # Include newline
-        self.buffer = self.buffer[last_newline + 1:]  # Keep incomplete lines
-
-        # If buffer is cleared, reset timestamps
-        if not self.buffer:
+        if last_newline == -1 or self.force_flush_all:
+            # Either no newline yet or we were explicitly told to flush the whole buffer
+            result = self.buffer
+            self.buffer = ""
             self.window_start_time = None
             self.last_data_time = None
+            self.force_flush_all = False
         else:
-            # If there's remaining data, update window start time (start counting from remaining data)
-            self.window_start_time = time.time()
+            # Send complete lines up to the last newline
+            result = self.buffer[:last_newline + 1]  # Include newline
+            self.buffer = self.buffer[last_newline + 1:]  # Keep incomplete lines
 
-        return result
+            # If there's remaining data, update window start time (start counting from remaining data)
+            if self.buffer:
+                self.window_start_time = time.time()
+            else:
+                self.window_start_time = None
+                self.last_data_time = None
+
+        safe_text, tail = self._split_incomplete_escape_tail(result)
+        if tail:
+            # Prepend tail back to buffer so we flush it with the next chunk once complete
+            self.buffer = tail + self.buffer
+            if self.window_start_time is None:
+                self.window_start_time = time.time()
+            self.last_data_time = time.time()
+            if not safe_text:
+                return ""
+
+        return safe_text
 
     def has_data(self) -> bool:
         """Check if buffer has data"""
@@ -618,6 +735,7 @@ Examples:
                 if text_buffer.should_flush(current_time):
                     buffered_text = text_buffer.flush()
                     if buffered_text:
+                        # bridge.send_chunk(buffered_text)
                         clean = clean_text(buffered_text)
                         if clean:
                             bridge.send_chunk(clean)
