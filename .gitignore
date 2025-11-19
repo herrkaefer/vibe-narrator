@@ -12,4 +12,7 @@ wheels/
 # Logs
 logs/
 
+# Environment files (contains secrets)
+.env
+
 dev.md

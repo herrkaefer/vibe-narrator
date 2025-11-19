@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 import unicodedata
+from dotenv import load_dotenv
 
 
 class _AnsiCleaner:
@@ -141,18 +142,35 @@ logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
-    def __init__(self, server_cmd=None):
+    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None):
         # Get the directory where this script is located
         script_dir = Path(__file__).parent.absolute()
-        narrator_path = script_dir / "narrator.py"
+        narrator_path = script_dir / "narrator-mcp" / "server.py"
 
-        # Use default command if not provided
-        if server_cmd is None:
-            server_cmd = ["python", str(narrator_path)]
+        # Store configuration
+        self.api_key = api_key
+        self.model = model
+        self.voice = voice
+        self.config_sent = False
 
-        logger.info(f"🚀 Starting MCP Server subprocess...")
+        # Use default command if not provided. Prefer the packaged server if present.
+        custom_cmd = server_cmd is not None
+        if not custom_cmd:
+            if not narrator_path.exists():
+                raise FileNotFoundError(
+                    f"Could not locate narrator MCP server script at {narrator_path}. "
+                    "Please run from the repo root or pass a custom server command."
+                )
+            server_cmd = [sys.executable, str(narrator_path)]
+        else:
+            narrator_path = Path(server_cmd[-1]) if server_cmd else Path("<custom>")
+
+        logger.info("🚀 Starting MCP Server subprocess...")
         logger.info(f"📁 Script directory: {script_dir}")
-        logger.info(f"📄 Narrator path: {narrator_path}")
+        if custom_cmd:
+            logger.info(f"📄 Custom server command: {' '.join(server_cmd)}")
+        else:
+            logger.info(f"📄 Narrator path: {narrator_path}")
 
         self.proc = subprocess.Popen(
             server_cmd,
@@ -168,6 +186,8 @@ class MCPBridge:
         # Synchronization mechanism for waiting for initialize response
         self.initialize_event = threading.Event()
         self.initialize_response = None
+        self.config_event = threading.Event()
+        self.config_response = None
 
         # Track pending requests to wait for responses
         self.pending_requests = {}  # id -> timestamp
@@ -204,6 +224,33 @@ class MCPBridge:
         else:
             logger.error("❌ Timeout waiting for initialize response")
 
+        # Send config with API key if provided
+        if self.api_key:
+            self._send_config()
+
+    def _send_config(self):
+        """Send config with API key to MCP Server"""
+        config_params = {"api_key": self.api_key}
+        if self.model:
+            config_params["model"] = self.model
+        if self.voice:
+            config_params["voice"] = self.voice
+
+        self._send({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "config",
+            "params": config_params
+        })
+        logger.info(f"🔑 Sent config to MCP Server (model={self.model or 'default'}, voice={self.voice or 'default'})")
+
+        # Wait for config response
+        if self.config_event.wait(timeout=5.0):
+            logger.info("✅ Config accepted by MCP Server")
+            self.config_sent = True
+        else:
+            logger.error("❌ Timeout waiting for config response")
+
     def _send(self, msg: dict):
         """Send JSON-RPC request to MCP Server"""
         try:
@@ -237,6 +284,12 @@ class MCPBridge:
                     self.initialize_event.set()
                     logger.info(f"✅ Received initialize response: {msg.get('result', {})}")
 
+                # Check if it's a config response (id=1)
+                if msg.get("id") == 1 and "result" in msg:
+                    self.config_response = msg
+                    self.config_event.set()
+                    logger.info(f"✅ Received config response: {msg.get('result', {})}")
+
                 # Track tool call responses
                 response_id = msg.get("id")
                 if response_id is not None:
@@ -254,16 +307,17 @@ class MCPBridge:
             logger.debug(f"🔴 MCP Server Log: {line.strip()}")
 
     def send_chunk(self, text):
-        """Send text chunks to MCP Server - use tools/call to call tool"""
+        """Send text chunks to MCP Server - use narrate method"""
+        if not self.config_sent:
+            logger.warning("⚠️ Config not sent yet, skipping narrate request")
+            return
+
         req = {
             "jsonrpc": "2.0",
             "id": int(time.time() * 1000),
-            "method": "tools/call",
+            "method": "narrate",
             "params": {
-                "name": "narrate",
-                "arguments": {
-                    "text": text
-                }
+                "prompt": text
             }
         }
         self.pending_requests[req["id"]] = time.time()
@@ -665,8 +719,28 @@ Examples:
     if not args.command:
         parser.error("command is required")
 
+    # Load environment variables from .env file
+    script_dir = Path(__file__).parent.absolute()
+    env_file = script_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        logger.info(f"📄 Loaded environment from {env_file}")
+    else:
+        logger.warning(f"⚠️ No .env file found at {env_file}")
+
+    # Get API configuration from environment
+    api_key = os.getenv("OPENAI_API_KEY")
+    model = os.getenv("OPENAI_MODEL")
+    voice = os.getenv("OPENAI_VOICE")
+
+    if not api_key:
+        logger.error("❌ OPENAI_API_KEY not found in environment")
+        logger.error("Please create a .env file with your OpenAI API key")
+        logger.error(f"Example: cp {script_dir}/.env.example {script_dir}/.env")
+        sys.exit(1)
+
     logger.info("🧩 Starting MCP Bridge...")
-    bridge = MCPBridge()
+    bridge = MCPBridge(api_key=api_key, model=model, voice=voice)
     time.sleep(0.5)
 
     # Create a pseudo terminal pair
