@@ -76,13 +76,20 @@ class AudioPlayer:
         """Worker thread that plays audio chunks."""
         try:
             from pydub import AudioSegment
-            from pydub.playback import _play_with_pyaudio
         except ImportError:
             logger.error("❌ pydub not available - cannot play audio")
             return
 
+        # Initialize persistent PyAudio stream
+        p = None
+        stream = None
+        current_format = None
+        current_channels = None
+        current_rate = None
+
         try:
             logger.info("🎧 Audio playback worker started")
+            p = self.pyaudio.PyAudio()
 
             while self.is_playing:
                 try:
@@ -97,8 +104,32 @@ class AudioPlayer:
                         audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
                         logger.debug(f"Playing audio chunk: {len(audio)}ms, {audio.frame_rate}Hz")
 
-                        # Play the audio
-                        _play_with_pyaudio(audio)
+                        # Check if we need to recreate the stream (format changed)
+                        if (stream is None or
+                            current_format != p.get_format_from_width(audio.sample_width) or
+                            current_channels != audio.channels or
+                            current_rate != audio.frame_rate):
+
+                            # Close old stream if exists
+                            if stream is not None:
+                                stream.stop_stream()
+                                stream.close()
+
+                            # Create new stream with current audio format
+                            current_format = p.get_format_from_width(audio.sample_width)
+                            current_channels = audio.channels
+                            current_rate = audio.frame_rate
+
+                            stream = p.open(
+                                format=current_format,
+                                channels=current_channels,
+                                rate=current_rate,
+                                output=True
+                            )
+                            logger.debug(f"🎚️  Opened audio stream: {current_rate}Hz, {current_channels}ch")
+
+                        # Write audio data to stream
+                        stream.write(audio.raw_data)
 
                     except Exception as e:
                         logger.error(f"❌ Error playing audio chunk: {e}")
@@ -111,6 +142,18 @@ class AudioPlayer:
         except Exception as e:
             logger.exception(f"❌ Audio playback worker error: {e}")
         finally:
+            # Cleanup
+            if stream is not None:
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except:
+                    pass
+            if p is not None:
+                try:
+                    p.terminate()
+                except:
+                    pass
             logger.info("🎧 Audio playback worker stopped")
 
     def stop(self):
