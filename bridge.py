@@ -143,7 +143,7 @@ logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
-    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None):
+    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None, mode=None):
         # Get the directory where this script is located
         script_dir = Path(__file__).parent.absolute()
         narrator_path = script_dir / "narrator-mcp" / "server.py"
@@ -152,6 +152,7 @@ class MCPBridge:
         self.api_key = api_key
         self.model = model
         self.voice = voice
+        self.mode = mode  # "chat" or "narration"
         self.config_sent = False
 
         # Use default command if not provided. Prefer the packaged server if present.
@@ -245,6 +246,8 @@ class MCPBridge:
             config_params["model"] = self.model
         if self.voice:
             config_params["voice"] = self.voice
+        if self.mode:
+            config_params["mode"] = self.mode
 
         self._send({
             "jsonrpc": "2.0",
@@ -252,7 +255,9 @@ class MCPBridge:
             "method": "config",
             "params": config_params
         })
-        logger.info(f"🔑 Sent config to MCP Server (model={self.model or 'default'}, voice={self.voice or 'default'})")
+
+        config_info = f"model={self.model or 'default'}, voice={self.voice or 'default'}, mode={self.mode or 'chat'}"
+        logger.info(f"🔑 Sent config to MCP Server ({config_info})")
 
         # Wait for config response
         if self.config_event.wait(timeout=5.0):
@@ -793,6 +798,7 @@ Examples:
     api_key = os.getenv("OPENAI_API_KEY")
     model = os.getenv("OPENAI_MODEL")
     voice = os.getenv("OPENAI_VOICE")
+    mode = os.getenv("MODE")  # "chat" or "narration"
 
     if not api_key:
         logger.error("❌ OPENAI_API_KEY not found in environment")
@@ -801,7 +807,7 @@ Examples:
         sys.exit(1)
 
     logger.info("🧩 Starting MCP Bridge...")
-    bridge = MCPBridge(api_key=api_key, model=model, voice=voice)
+    bridge = MCPBridge(api_key=api_key, model=model, voice=voice, mode=mode)
     time.sleep(0.5)
 
     # Create a pseudo terminal pair

@@ -6,6 +6,7 @@ from typing import Optional
 
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_VOICE = "alloy"
+DEFAULT_MODE = "chat"  # "chat" or "narration"
 
 
 class Session:
@@ -15,6 +16,7 @@ class Session:
         self.api_key: Optional[str] = None
         self.model: str = DEFAULT_MODEL
         self.voice: str = DEFAULT_VOICE
+        self.mode: str = DEFAULT_MODE  # "chat" or "narration"
 
 
-__all__ = ["Session", "DEFAULT_MODEL", "DEFAULT_VOICE"]
+__all__ = ["Session", "DEFAULT_MODEL", "DEFAULT_VOICE", "DEFAULT_MODE"]

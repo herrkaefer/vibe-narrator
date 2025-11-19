@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional
 
 from chunker import Chunker
 from events import send_audio_event, send_text_event
-from llm import stream_llm
+from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
 from session import Session
 from tts import stream_tts
 
@@ -97,7 +97,11 @@ async def handle_config(msg: Dict[str, Any]) -> None:
     session.api_key = api_key
     session.model = params.get("model", session.model)
     session.voice = params.get("voice", session.voice)
-    logging.info("✅ Session configured (model=%s, voice=%s)", session.model, session.voice)
+    session.mode = params.get("mode", session.mode)
+
+    # Log configuration
+    logging.info(f"✅ Session configured (model={session.model}, voice={session.voice}, mode={session.mode})")
+
     await send({"jsonrpc": "2.0", "result": "ok", "id": msg.get("id")})
 
 
@@ -130,7 +134,21 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
 
     async def run_llm() -> None:
         token_count = 0
-        async for token in stream_llm(prompt, session.api_key, session.model):
+        # Determine system prompt based on mode
+        stream_params = {
+            "prompt": prompt,
+            "api_key": session.api_key,
+            "model": session.model
+        }
+
+        # Select system prompt based on mode
+        if session.mode == "narration":
+            stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
+        elif session.mode == "chat":
+            stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
+        # If no explicit mode, llm.py will use its default (chat mode)
+
+        async for token in stream_llm(**stream_params):
             token_count += 1
             narrate_logger.debug("📝 LLM token #%d: %s", token_count, repr(token))
             await send_text_event(send, token)
