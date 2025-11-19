@@ -23,18 +23,14 @@ async def stream_tts(
         model=model,
         voice=voice,
         input=text_block,
-        format=TTS_FORMAT,
-        stream=True,
+        response_format=TTS_FORMAT,
     )
 
-    async for chunk in response:
-        data = getattr(chunk, "data", None)
-        if not data:
-            continue
-        if isinstance(data, bytes):
-            yield data
-        else:
-            yield bytes(data)
+    # OpenAI audio.speech returns HttpxBinaryResponseContent
+    # We need to read the content and yield it in chunks
+    for chunk in response.iter_bytes(chunk_size=4096):
+        if chunk:
+            yield chunk
 
 
 __all__ = ["DEFAULT_TTS_MODEL", "DEFAULT_TTS_VOICE", "stream_tts"]

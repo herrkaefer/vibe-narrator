@@ -161,7 +161,8 @@ class MCPBridge:
                     f"Could not locate narrator MCP server script at {narrator_path}. "
                     "Please run from the repo root or pass a custom server command."
                 )
-            server_cmd = [sys.executable, str(narrator_path)]
+            # Use uv run to ensure correct Python environment with dependencies
+            server_cmd = ["uv", "run", "python", str(narrator_path)]
         else:
             narrator_path = Path(server_cmd[-1]) if server_cmd else Path("<custom>")
 
@@ -192,6 +193,10 @@ class MCPBridge:
         # Track pending requests to wait for responses
         self.pending_requests = {}  # id -> timestamp
         self.responses_received = {}  # id -> response
+
+        # Statistics
+        self.audio_chunks_received = 0
+        self.text_tokens_received = 0
 
         # Listening threads
         threading.Thread(target=self._listen_stdout, name="ServerStdout", daemon=True).start()
@@ -272,11 +277,31 @@ class MCPBridge:
 
                 # Check if it's a notification (no id field)
                 if "id" not in msg:
+                    # Handle MCP protocol notifications
                     method = msg.get("method", "")
                     if method == "notifications/shutdown":
                         logger.info(f"🛑 Received shutdown notification from MCP Server: {msg.get('params', {})}")
-                        # Can do some cleanup work here
                         continue
+
+                    # Handle narration events (text_token, audio_chunk)
+                    event_type = msg.get("event", "")
+                    if event_type == "text_token":
+                        token = msg.get("data", "")
+                        self.text_tokens_received += 1
+                        logger.debug(f"📝 Text token: {token}")
+                        continue
+                    elif event_type == "audio_chunk":
+                        encoding = msg.get("encoding", "unknown")
+                        data_len = len(msg.get("data", ""))
+                        self.audio_chunks_received += 1
+                        logger.info(f"🔊 Audio chunk #{self.audio_chunks_received} received ({encoding}, {data_len} bytes)")
+                        # TODO: 在这里可以播放音频或保存到文件
+                        continue
+
+                    # Unknown notification/event
+                    if not method and not event_type:
+                        logger.debug(f"Unknown message (no id): {msg}")
+                    continue
 
                 # Check if it's an initialize response (id=0)
                 if msg.get("id") == 0 and "result" in msg:
@@ -304,7 +329,10 @@ class MCPBridge:
     def _listen_stderr(self):
         """Listen to MCP Server's stderr (logs)"""
         for line in self.proc.stderr:
-            logger.debug(f"🔴 MCP Server Log: {line.strip()}")
+            line = line.strip()
+            if line:
+                # Log MCP server errors at INFO level so they're always visible
+                logger.info(f"🔴 MCP Server Log: {line}")
 
     def send_chunk(self, text):
         """Send text chunks to MCP Server - use narrate method"""
@@ -327,10 +355,17 @@ class MCPBridge:
     def wait_for_responses(self, timeout=5.0):
         """Wait for all pending requests to receive responses"""
         start_time = time.time()
+        last_count = len(self.pending_requests)
+
         while self.pending_requests and (time.time() - start_time) < timeout:
-            time.sleep(0.1)
+            current_count = len(self.pending_requests)
+            if current_count != last_count:
+                logger.info(f"   {current_count} narration(s) still processing...")
+                last_count = current_count
+            time.sleep(0.5)
+
         if self.pending_requests:
-            logger.warning(f"⚠️ Still waiting for {len(self.pending_requests)} responses: {list(self.pending_requests.keys())}")
+            logger.warning(f"⚠️ Timeout: {len(self.pending_requests)} narrations did not complete in {timeout}s")
 
     def cleanup(self):
         """Clean up MCP Server process"""
@@ -343,7 +378,7 @@ class MCPBridge:
             time.sleep(0.2)
 
             try:
-                self.proc.wait(timeout=1.8)  # Total 2 seconds, already waited 0.2 seconds
+                self.proc.wait(timeout=4.8)  # Total 2 seconds, already waited 0.2 seconds
             except subprocess.TimeoutExpired:
                 logger.warning("⚠️ MCP Server didn't terminate, forcing kill...")
                 self.proc.kill()
@@ -905,9 +940,24 @@ Examples:
             cmd_proc.terminate()
         cmd_proc.wait()
 
+        # Wait for narration to complete
+        logger.info("⏳ Waiting for narration to complete...")
+        if bridge.pending_requests:
+            logger.info(f"   Waiting for {len(bridge.pending_requests)} pending narration requests...")
+
+        # Wait up to 30 seconds for all audio to be generated and sent
+        bridge.wait_for_responses(timeout=30.0)
+
+        if bridge.pending_requests:
+            logger.warning(f"⚠️  Some narrations may not have completed: {len(bridge.pending_requests)} pending")
+        else:
+            logger.info("✅ All narrations completed")
+
+        # Show statistics
+        logger.info(f"📊 Session statistics:")
+        logger.info(f"   Text tokens: {bridge.text_tokens_received}")
+        logger.info(f"   Audio chunks: {bridge.audio_chunks_received}")
+
         # Clean up MCP Server
         bridge.cleanup()
-
-        # Wait for all responses
-        bridge.wait_for_responses(timeout=2.0)
-        logger.info("✅ All responses received (or timeout)")
+        logger.info("✅ Bridge shutdown complete")

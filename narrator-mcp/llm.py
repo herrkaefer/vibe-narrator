@@ -26,7 +26,7 @@ async def stream_llm(
         if not chunk.choices:
             continue
         delta = chunk.choices[0].delta
-        content = delta.get("content")
+        content = delta.content if hasattr(delta, 'content') else None
         if content:
             yield content
 
