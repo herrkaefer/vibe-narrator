@@ -2,7 +2,19 @@
 
 ## 快速开始
 
-### 1. 配置环境
+### 1. 系统依赖 (仅 Linux 用户)
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install portaudio19-dev ffmpeg
+
+# Fedora/RHEL
+sudo dnf install portaudio-devel
+```
+
+macOS 和 Windows 用户可以跳过此步骤。
+
+### 2. 配置环境
 
 ```bash
 # 复制环境变量模板
@@ -12,24 +24,26 @@ cp .env.example .env
 # OPENAI_API_KEY=sk-your-actual-api-key-here
 ```
 
-### 2. 安装依赖
+### 3. 安装依赖
 
 ```bash
 uv sync
 ```
 
-### 3. 测试
+### 4. 测试 🎵
 
 ```bash
 # 方式 1: 使用便捷测试脚本
 ./test_echo.sh
 
-# 方式 2: 直接运行
+# 方式 2: 直接运行 (会听到语音!)
 uv run python bridge.py echo "Hello from vibe-narrator!"
 
 # 方式 3: 与 Claude Code 集成
 uv run python bridge.py claude
 ```
+
+**注意**: 第一次运行时,你会听到 AI 生成的语音从扬声器播放出来! 🔊
 
 ## 工作原理
 
@@ -40,7 +54,7 @@ uv run python bridge.py claude
 │  Command (e.g.  │
 │  Claude Code)   │
 └────────┬────────┘
-         │
+         │ stdout
          ▼
 ┌─────────────────┐
 │  Bridge (PTY)   │  捕获输出,清理 ANSI 码
@@ -52,9 +66,20 @@ uv run python bridge.py claude
 │  Narrator MCP   │  LLM + TTS 生成语音
 │  server.py      │
 └────────┬────────┘
+         │ Audio Events (hex-encoded MP3)
+         ▼
+┌─────────────────┐
+│  AudioPlayer    │  解码 + 队列 + 播放
+│  audio_player.py│
+└────────┬────────┘
+         │ PCM Audio
+         ▼
+┌─────────────────┐
+│  PyAudio/pydub  │
+└────────┬────────┘
          │
          ▼
-  Audio Events (hex-encoded MP3)
+      🔊 扬声器
 ```
 
 ### 流程

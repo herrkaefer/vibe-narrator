@@ -129,30 +129,51 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
     narrate_logger.info("📝 Narrate text:\n%s", prompt)
 
     async def run_llm() -> None:
+        token_count = 0
         async for token in stream_llm(prompt, session.api_key, session.model):
+            token_count += 1
+            narrate_logger.debug("📝 LLM token #%d: %s", token_count, repr(token))
             await send_text_event(send, token)
             block = chunker.add_token(token)
             if block:
+                narrate_logger.info("📦 Chunk ready for TTS (%d chars): %s", len(block), repr(block))
                 await tts_queue.put(block)
 
+        narrate_logger.info("✅ LLM streaming complete (%d tokens)", token_count)
         leftover = chunker.flush()
         if leftover:
+            narrate_logger.info("📦 Final chunk for TTS (%d chars): %s", len(leftover), repr(leftover))
             await tts_queue.put(leftover)
 
         await tts_queue.put(None)
 
     async def run_tts() -> None:
+        tts_chunk_count = 0
         while True:
             block = await tts_queue.get()
             if block is None:
                 break
 
+            tts_chunk_count += 1
+            narrate_logger.info("🎤 Sending to TTS #%d (%d chars): %s", tts_chunk_count, len(block), repr(block))
+
+            # Accumulate all audio chunks for this text block into a single MP3
+            audio_buffer = bytearray()
+            audio_fragment_count = 0
             async for audio_chunk in stream_tts(
                 block,
                 session.api_key,
                 session.voice,
             ):
-                await send_audio_event(send, audio_chunk, encoding="hex")
+                audio_fragment_count += 1
+                audio_buffer.extend(audio_chunk)
+                narrate_logger.debug("   🎵 Audio fragment #%d: %d bytes", audio_fragment_count, len(audio_chunk))
+
+            # Send complete MP3 file as one event
+            if audio_buffer:
+                narrate_logger.info("   ✅ Complete MP3 #%d: %d bytes (from %d fragments)",
+                                   tts_chunk_count, len(audio_buffer), audio_fragment_count)
+                await send_audio_event(send, bytes(audio_buffer), encoding="hex")
 
     await asyncio.gather(run_llm(), run_tts())
     await send({"jsonrpc": "2.0", "result": "done", "id": msg.get("id")})

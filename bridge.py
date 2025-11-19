@@ -15,6 +15,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 import unicodedata
 from dotenv import load_dotenv
+from audio_player import AudioPlayer
 
 
 class _AnsiCleaner:
@@ -198,6 +199,10 @@ class MCPBridge:
         self.audio_chunks_received = 0
         self.text_tokens_received = 0
 
+        # Audio player for streaming playback
+        self.audio_player = AudioPlayer()
+        self.audio_player.start()
+
         # Listening threads
         threading.Thread(target=self._listen_stdout, name="ServerStdout", daemon=True).start()
         threading.Thread(target=self._listen_stderr, name="ServerStderr", daemon=True).start()
@@ -292,10 +297,22 @@ class MCPBridge:
                         continue
                     elif event_type == "audio_chunk":
                         encoding = msg.get("encoding", "unknown")
-                        data_len = len(msg.get("data", ""))
+                        data_hex = msg.get("data", "")
+                        data_len = len(data_hex)
                         self.audio_chunks_received += 1
-                        logger.info(f"🔊 Audio chunk #{self.audio_chunks_received} received ({encoding}, {data_len} bytes)")
-                        # TODO: 在这里可以播放音频或保存到文件
+                        logger.info(f"🔊 Audio chunk #{self.audio_chunks_received} received ({encoding}, {data_len} chars)")
+
+                        # Decode hex and play audio
+                        try:
+                            if encoding == "hex":
+                                audio_bytes = bytes.fromhex(data_hex)
+                                self.audio_player.add_chunk(audio_bytes)
+                                logger.debug(f"   Added {len(audio_bytes)} bytes to playback queue")
+                            else:
+                                logger.warning(f"⚠️  Unsupported audio encoding: {encoding}")
+                        except Exception as e:
+                            logger.error(f"❌ Error decoding/playing audio: {e}")
+
                         continue
 
                     # Unknown notification/event
@@ -368,7 +385,16 @@ class MCPBridge:
             logger.warning(f"⚠️ Timeout: {len(self.pending_requests)} narrations did not complete in {timeout}s")
 
     def cleanup(self):
-        """Clean up MCP Server process"""
+        """Clean up MCP Server process and audio player"""
+        # Wait for audio playback to complete
+        if self.audio_player.get_queue_size() > 0:
+            logger.info(f"⏳ Waiting for {self.audio_player.get_queue_size()} audio chunks to finish playing...")
+            self.audio_player.wait_for_completion(timeout=10.0)
+
+        # Stop audio player
+        self.audio_player.stop()
+
+        # Clean up MCP Server
         if self.proc.poll() is None:
             logger.info("🛑 Terminating MCP Server process...")
             self.proc.terminate()
@@ -788,8 +814,11 @@ Examples:
     slave_name = os.ttyname(slave_fd)
     logger.info(f"📺 Created PTY: {slave_name}")
 
-    # Save current terminal settings
-    old_settings = termios.tcgetattr(sys.stdin)
+    # Save current terminal settings (only if stdin is a TTY)
+    old_settings = None
+    stdin_is_tty = sys.stdin.isatty()
+    if stdin_is_tty:
+        old_settings = termios.tcgetattr(sys.stdin)
 
     # Get command to run from command line arguments
     cmd = args.command
@@ -808,11 +837,13 @@ Examples:
 
     # Set terminal to raw mode (for proper input handling)
     try:
-        tty.setraw(sys.stdin.fileno())
+        if stdin_is_tty:
+            tty.setraw(sys.stdin.fileno())
 
         def restore_terminal():
             """Restore terminal settings"""
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            if old_settings is not None:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
         # Register signal handler to ensure terminal is restored on exit
         def signal_handler(sig, frame):
@@ -850,7 +881,10 @@ Examples:
                             bridge.send_chunk(clean)
 
                 # Check which file descriptors have data to read
-                ready, _, _ = select.select([master_fd, sys.stdin], [], [], 0.1)
+                fds_to_read = [master_fd]
+                if stdin_is_tty:
+                    fds_to_read.append(sys.stdin)
+                ready, _, _ = select.select(fds_to_read, [], [], 0.1)
 
                 # Read from command output (master_fd)
                 if master_fd in ready:

@@ -7,7 +7,7 @@ from typing import List, Optional
 
 
 class Chunker:
-    """Buffers tokens until a boundary or size limit is reached."""
+    """Buffers tokens until a sentence boundary is reached."""
 
     SENTENCE_END_RE = re.compile(r"[。！？.!?]$")
 
@@ -21,10 +21,15 @@ class Chunker:
         self.buffer.append(token)
         text = "".join(self.buffer)
 
-        if self.sentence_boundary and self.SENTENCE_END_RE.search(text):
-            self.buffer.clear()
-            return text
+        # If sentence_boundary is enabled, ONLY break at sentence endings
+        if self.sentence_boundary:
+            if self.SENTENCE_END_RE.search(text):
+                self.buffer.clear()
+                return text
+            # Don't break in the middle of a sentence, even if max_tokens is exceeded
+            return None
 
+        # If sentence_boundary is disabled, break at max_tokens
         if len(self.buffer) >= self.max_tokens:
             self.buffer.clear()
             return text
