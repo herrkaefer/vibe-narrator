@@ -194,7 +194,9 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
                 await send_audio_event(send, bytes(audio_buffer), encoding="hex")
 
     await asyncio.gather(run_llm(), run_tts())
+    narrate_logger.info("✅ Narration complete, sending result response with id=%s", msg.get("id"))
     await send({"jsonrpc": "2.0", "result": "done", "id": msg.get("id")})
+    narrate_logger.info("✅ Result response sent")
 
 
 async def handle_initialize(msg: Dict[str, Any]) -> None:

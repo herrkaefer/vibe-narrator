@@ -379,6 +379,8 @@ class MCPBridge:
         start_time = time.time()
         last_count = len(self.pending_requests)
 
+        logger.info(f"⏳ Waiting for {last_count} pending narration request(s)...")
+
         while self.pending_requests and (time.time() - start_time) < timeout:
             current_count = len(self.pending_requests)
             if current_count != last_count:
@@ -388,19 +390,33 @@ class MCPBridge:
 
         if self.pending_requests:
             logger.warning(f"⚠️ Timeout: {len(self.pending_requests)} narrations did not complete in {timeout}s")
+            logger.warning(f"   Pending request IDs: {list(self.pending_requests.keys())}")
+        else:
+            logger.info("✅ All narration requests completed")
 
     def cleanup(self):
         """Clean up MCP Server process and audio player"""
+        logger.info("🧹 Starting cleanup...")
+
         # Wait for audio playback to complete
-        if self.audio_player.get_queue_size() > 0:
-            logger.info(f"⏳ Waiting for {self.audio_player.get_queue_size()} audio chunks to finish playing...")
+        queue_size = self.audio_player.get_queue_size()
+        logger.info(f"📊 Audio queue size: {queue_size}")
+        if queue_size > 0:
+            logger.info(f"⏳ Waiting for {queue_size} audio chunks to finish playing...")
             self.audio_player.wait_for_completion(timeout=10.0)
+        else:
+            logger.info("✅ Audio queue is empty, no need to wait")
 
         # Stop audio player
+        logger.info("🛑 Stopping audio player...")
         self.audio_player.stop()
+        logger.info("✅ Audio player stopped")
 
         # Clean up MCP Server
-        if self.proc.poll() is None:
+        mcp_status = self.proc.poll()
+        logger.info(f"📊 MCP Server process status: {mcp_status}")
+
+        if mcp_status is None:
             logger.info("🛑 Terminating MCP Server process...")
             self.proc.terminate()
 
@@ -409,14 +425,17 @@ class MCPBridge:
             time.sleep(0.2)
 
             try:
-                self.proc.wait(timeout=4.8)  # Total 2 seconds, already waited 0.2 seconds
+                self.proc.wait(timeout=4.8)  # Total 5 seconds, already waited 0.2 seconds
+                logger.info("✅ MCP Server process terminated gracefully")
             except subprocess.TimeoutExpired:
                 logger.warning("⚠️ MCP Server didn't terminate, forcing kill...")
                 self.proc.kill()
                 self.proc.wait()
-            logger.info("✅ MCP Server process terminated")
+                logger.info("✅ MCP Server process killed")
         else:
-            logger.info(f"✅ MCP Server process already exited (code: {self.proc.returncode})")
+            logger.info(f"✅ MCP Server process already exited (code: {mcp_status})")
+
+        logger.info("🧹 Cleanup complete")
 
 
 def clean_ansi_codes(text: str) -> str:
@@ -975,10 +994,18 @@ Examples:
                         bridge.send_chunk(clean)
 
     finally:
+        logger.info("🔚 Entering finally block - closing PTY and waiting for child process...")
         os.close(master_fd)
+        logger.info("✅ PTY master fd closed")
+
         if cmd_proc.poll() is None:
+            logger.info("⚠️ Child process still running, terminating...")
             cmd_proc.terminate()
+        else:
+            logger.info(f"✅ Child process already exited with code: {cmd_proc.poll()}")
+
         cmd_proc.wait()
+        logger.info(f"✅ Child process wait() complete, exit code: {cmd_proc.returncode}")
 
         # Wait for narration to complete
         logger.info("⏳ Waiting for narration to complete...")
@@ -999,5 +1026,6 @@ Examples:
         logger.info(f"   Audio chunks: {bridge.audio_chunks_received}")
 
         # Clean up MCP Server
+        logger.info("🧹 Calling bridge.cleanup()...")
         bridge.cleanup()
         logger.info("✅ Bridge shutdown complete")

@@ -167,16 +167,16 @@ class AudioPlayer:
         # Send sentinel to stop worker
         if self.pyaudio_available:
             self.audio_queue.put(None)
+            logger.debug("Sent stop sentinel to audio queue")
 
         # Wait for playback thread to finish
         if self.playback_thread and self.playback_thread.is_alive():
+            logger.debug("Waiting for playback thread to finish...")
             self.playback_thread.join(timeout=2.0)
-
-        # Wait for queue to empty
-        try:
-            self.audio_queue.join()
-        except:
-            pass
+            if self.playback_thread.is_alive():
+                logger.warning("⚠️ Playback thread did not finish within 2 seconds")
+            else:
+                logger.debug("Playback thread finished")
 
         logger.info("✅ Audio playback stopped")
 
@@ -187,18 +187,25 @@ class AudioPlayer:
 
         logger.info("⏳ Waiting for audio playback to complete...")
         try:
-            if timeout:
-                self.audio_queue.join()
-            else:
-                # Wait with timeout
-                import time
-                start = time.time()
-                while not self.audio_queue.empty() and (time.time() - start) < (timeout or 30):
-                    time.sleep(0.1)
+            import time
+            start = time.time()
+
+            # Wait for queue to be processed (all task_done() called)
+            while True:
+                # Check if queue is empty and all tasks are done
+                if self.audio_queue.unfinished_tasks == 0:
+                    break
+
+                # Check timeout
+                if timeout is not None and (time.time() - start) >= timeout:
+                    logger.warning(f"⚠️ Audio playback timeout after {timeout}s")
+                    break
+
+                time.sleep(0.1)
         except Exception as e:
             logger.debug(f"Error waiting for audio completion: {e}")
 
-        logger.info("✅ Audio playback queue empty")
+        logger.info("✅ Audio playback completed")
 
     def get_queue_size(self) -> int:
         """Get the number of chunks waiting to be played."""
