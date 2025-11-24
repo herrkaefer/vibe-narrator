@@ -613,7 +613,7 @@ class TextBuffer:
     Text buffer that accumulates data and records timestamps to determine when to send
     Ensures sending only at line boundaries, avoiding cutting in the middle of lines
     """
-    def __init__(self, min_window_seconds=1.0, pause_threshold=2.0):
+    def __init__(self, min_window_seconds=2.0, pause_threshold=5.0):
         self.buffer = ""  # Accumulated text data
         self.window_start_time = None  # Current window start time
         self.last_data_time = None  # Time of last data arrival
@@ -670,11 +670,19 @@ class TextBuffer:
 
         has_complete = self.has_complete_lines()
 
-        # Check if minimum time window is exceeded (must have complete lines)
+        # TEMPORARY: Allow flushing without newlines based on time windows
+        # Set to False to restore original behavior (require newlines for min_window_seconds flush)
+        ALLOW_FLUSH_WITHOUT_NEWLINES = True
+
+        # Check if minimum time window is exceeded
         if self.window_start_time and \
            (current_time - self.window_start_time) >= self.min_window_seconds:
             if has_complete:
                 self.force_flush_all = False
+                return True
+            # TEMPORARY: Also flush if no newlines but time window exceeded
+            elif ALLOW_FLUSH_WITHOUT_NEWLINES and len(self.buffer) > 0:
+                self.force_flush_all = True
                 return True
 
         # Check if pause threshold is exceeded
@@ -819,6 +827,11 @@ Examples:
     voice = os.getenv("OPENAI_VOICE")
     mode = os.getenv("MODE")  # "chat" or "narration"
 
+    # Check if terminal debug logging is enabled
+    debug_terminal = os.getenv("BRIDGE_DEBUG_TERMINAL", "").lower() in ("1", "true", "yes", "on")
+    if debug_terminal:
+        logger.info("🔍 Terminal debug logging ENABLED (set BRIDGE_DEBUG_TERMINAL=0 to disable)")
+
     if not api_key:
         logger.error("❌ OPENAI_API_KEY not found in environment")
         logger.error("Please create a .env file with your OpenAI API key")
@@ -889,7 +902,7 @@ Examples:
             signal.signal(signal.SIGWINCH, _handle_winch)
 
         # Initialize text buffer
-        text_buffer = TextBuffer(min_window_seconds=1.0, pause_threshold=5.0)
+        text_buffer = TextBuffer(min_window_seconds=2.0, pause_threshold=5.0)
 
         # Bidirectional communication loop
         try:
@@ -917,6 +930,27 @@ Examples:
                         if not data:
                             break
 
+                        # Debug logging: log raw terminal output
+                        if debug_terminal:
+                            try:
+                                text = data.decode('utf-8', errors='replace')
+                                has_newline = '\n' in text
+                                has_cr = '\r' in text
+                                newline_count = text.count('\n')
+                                cr_count = text.count('\r')
+
+                                newline_str = "\\n"
+                                cr_str = "\\r"
+                                logger.info(
+                                    f"🔍 TERMINAL RAW: len={len(data)} bytes, "
+                                    f"text_len={len(text)} chars, "
+                                    f"has_{newline_str}={has_newline}, has_{cr_str}={has_cr}, "
+                                    f"{newline_str}_count={newline_count}, {cr_str}_count={cr_count}\n"
+                                    f"   Full content: {repr(text)}"
+                                )
+                            except Exception as e:
+                                logger.warning(f"🔍 TERMINAL RAW: Failed to decode for logging: {e}")
+
                         # Output to terminal
                         sys.stdout.buffer.write(data)
                         sys.stdout.buffer.flush()
@@ -927,11 +961,30 @@ Examples:
                             current_time = time.time()
                             text_buffer.add_data(text, current_time)
 
+                            # Debug logging: log buffer state after adding data
+                            if debug_terminal:
+                                buffer_has_newline = '\n' in text_buffer.buffer
+                                buffer_newline_count = text_buffer.buffer.count('\n')
+                                newline_str = "\\n"
+                                logger.info(
+                                    f"🔍 BUFFER STATE: total_len={len(text_buffer.buffer)}, "
+                                    f"has_{newline_str}={buffer_has_newline}, {newline_str}_count={buffer_newline_count}, "
+                                    f"window_start={text_buffer.window_start_time}, "
+                                    f"last_data={text_buffer.last_data_time}"
+                                )
+
                             # Check if should flush
                             if text_buffer.should_flush(current_time):
                                 buffered_text = text_buffer.flush()
                                 if buffered_text:
                                     clean = clean_text(buffered_text)
+                                    if debug_terminal:
+                                        logger.info(
+                                            f"🔍 FLUSHED: buffered_len={len(buffered_text)}, "
+                                            f"cleaned_len={len(clean) if clean else 0}, "
+                                            f"will_send={bool(clean)}\n"
+                                            f"   Flushed text: {repr(buffered_text)}"
+                                        )
                                     if clean:
                                         bridge.send_chunk(clean)
                         except Exception as e:
@@ -961,6 +1014,21 @@ Examples:
                             data = os.read(master_fd, 1024)
                             if not data:
                                 break
+
+                            # Debug logging for remaining data
+                            if debug_terminal:
+                                try:
+                                    text = data.decode('utf-8', errors='replace')
+                                    has_newline_remaining = '\n' in text
+                                    newline_str = "\\n"
+                                    logger.info(
+                                        f"🔍 TERMINAL REMAINING: len={len(data)} bytes, "
+                                        f"text_len={len(text)}, has_{newline_str}={has_newline_remaining}\n"
+                                        f"   Full content: {repr(text)}"
+                                    )
+                                except Exception as e:
+                                    logger.warning(f"🔍 TERMINAL REMAINING: Failed to decode: {e}")
+
                             sys.stdout.buffer.write(data)
                             sys.stdout.buffer.flush()
 
@@ -973,8 +1041,18 @@ Examples:
 
                     # Process remaining buffer
                     buffered_text = text_buffer.flush_all()
+                    if debug_terminal:
+                        logger.info(
+                            f"🔍 FINAL FLUSH: buffered_len={len(buffered_text) if buffered_text else 0}\n"
+                            f"   Content: {repr(buffered_text) if buffered_text else 'None'}"
+                        )
                     if buffered_text:
                         clean = clean_text(buffered_text)
+                        if debug_terminal:
+                            logger.info(
+                                f"🔍 FINAL CLEANED: cleaned_len={len(clean) if clean else 0}, "
+                                f"will_send={bool(clean)}"
+                            )
                         if clean:
                             bridge.send_chunk(clean)
                     break
@@ -987,8 +1065,18 @@ Examples:
             # Process final remaining buffer
             if text_buffer.has_data():
                 buffered_text = text_buffer.flush_all()
+                if debug_terminal:
+                    logger.info(
+                        f"🔍 FINALLY FLUSH: buffered_len={len(buffered_text) if buffered_text else 0}\n"
+                        f"   Content: {repr(buffered_text) if buffered_text else 'None'}"
+                    )
                 if buffered_text:
                     clean = clean_text(buffered_text)
+                    if debug_terminal:
+                        logger.info(
+                            f"🔍 FINALLY CLEANED: cleaned_len={len(clean) if clean else 0}, "
+                            f"will_send={bool(clean)}"
+                        )
                     if clean:
                         bridge.send_chunk(clean)
 
