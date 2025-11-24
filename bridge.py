@@ -904,7 +904,7 @@ Examples:
         # Initialize text buffer
         # Increased accumulation time to reduce send frequency and LLM/TTS calls
         # This helps reduce lag when agent output is complete
-        text_buffer = TextBuffer(min_window_seconds=3.0, pause_threshold=5.0)
+        text_buffer = TextBuffer(min_window_seconds=3.5, pause_threshold=5.0)
 
         # Bidirectional communication loop
         try:

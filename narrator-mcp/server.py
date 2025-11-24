@@ -19,6 +19,8 @@ from session import Session
 from tts import stream_tts
 from characters import get_default_character
 
+import openai
+
 session = Session()
 chunker = Chunker(max_tokens=12, sentence_boundary=True)
 script_dir = Path(__file__).parent.absolute()
@@ -130,6 +132,7 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
         return
 
     tts_queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
+    error_occurred = False  # Flag to track if an error response was already sent
     logging.info("🎧 Narrate request received")
     narrate_logger.info("📝 Narrate text:\n%s", prompt)
 
@@ -139,88 +142,188 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
     narrate_logger.info(f"🎭 Character: {character.name} (id: {character.id})")
 
     async def run_llm() -> None:
-        token_count = 0
-        # Determine system prompt based on mode
-        stream_params = {
-            "prompt": prompt,
-            "api_key": session.api_key,
-            "model": session.model
-        }
+        try:
+            token_count = 0
+            # Determine system prompt based on mode
+            stream_params = {
+                "prompt": prompt,
+                "api_key": session.api_key,
+                "model": session.model
+            }
 
-        # Select system prompt based on mode
-        if session.mode == "narration":
-            stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
-            # Limit max_tokens for narration mode to keep responses brief
-            stream_params["max_tokens"] = 30
-        elif session.mode == "chat":
-            stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
-            # Chat mode can be longer, but still limit to avoid excessive output
-            stream_params["max_tokens"] = 50
-        # If no explicit mode, llm.py will use its default (chat mode)
+            # Select system prompt based on mode
+            if session.mode == "narration":
+                stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
+                # Limit max_tokens for narration mode to keep responses brief
+                stream_params["max_tokens"] = 30
+            elif session.mode == "chat":
+                stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
+                # Chat mode can be longer, but still limit to avoid excessive output
+                stream_params["max_tokens"] = 50
+            # If no explicit mode, llm.py will use its default (chat mode)
 
-        # Add character for role-playing
-        stream_params["character"] = character
+            # Add character for role-playing
+            stream_params["character"] = character
 
-        async for token in stream_llm(**stream_params):
-            token_count += 1
-            narrate_logger.debug("📝 LLM token #%d: %s", token_count, repr(token))
-            await send_text_event(send, token)
-            block = chunker.add_token(token)
-            if block:
+            async for token in stream_llm(**stream_params):
+                token_count += 1
+                narrate_logger.debug("📝 LLM token #%d: %s", token_count, repr(token))
+                await send_text_event(send, token)
+                block = chunker.add_token(token)
+                if block:
+                    # Strip whitespace and quotes to check if content is meaningful
+                    stripped = block.strip().strip('"').strip("'").strip()
+                    if stripped:  # Only send to TTS if there's actual content
+                        narrate_logger.info("📦 Chunk ready for TTS (%d chars): %s", len(block), repr(block))
+                        await tts_queue.put(block)
+                    else:
+                        narrate_logger.info("⏭️ Skipping empty chunk: %s", repr(block))
+
+            narrate_logger.info("✅ LLM streaming complete (%d tokens)", token_count)
+            leftover = chunker.flush()
+            if leftover:
                 # Strip whitespace and quotes to check if content is meaningful
-                stripped = block.strip().strip('"').strip("'").strip()
+                stripped = leftover.strip().strip('"').strip("'").strip()
                 if stripped:  # Only send to TTS if there's actual content
-                    narrate_logger.info("📦 Chunk ready for TTS (%d chars): %s", len(block), repr(block))
-                    await tts_queue.put(block)
+                    narrate_logger.info("📦 Final chunk for TTS (%d chars): %s", len(leftover), repr(leftover))
+                    await tts_queue.put(leftover)
                 else:
-                    narrate_logger.info("⏭️ Skipping empty chunk: %s", repr(block))
+                    narrate_logger.info("⏭️ Skipping empty final chunk: %s", repr(leftover))
 
-        narrate_logger.info("✅ LLM streaming complete (%d tokens)", token_count)
-        leftover = chunker.flush()
-        if leftover:
-            # Strip whitespace and quotes to check if content is meaningful
-            stripped = leftover.strip().strip('"').strip("'").strip()
-            if stripped:  # Only send to TTS if there's actual content
-                narrate_logger.info("📦 Final chunk for TTS (%d chars): %s", len(leftover), repr(leftover))
-                await tts_queue.put(leftover)
-            else:
-                narrate_logger.info("⏭️ Skipping empty final chunk: %s", repr(leftover))
-
-        await tts_queue.put(None)
+            await tts_queue.put(None)
+        except openai.RateLimitError as e:
+            error_occurred = True
+            error_msg = f"OpenAI API rate limit exceeded: {str(e)}"
+            narrate_logger.error(f"❌ LLM rate limit error: {error_msg}")
+            logging.error(f"❌ LLM rate limit error: {error_msg}")
+            await tts_queue.put(None)  # Signal TTS to stop
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 4,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
+        except openai.APIError as e:
+            error_occurred = True
+            error_msg = f"OpenAI API error: {str(e)}"
+            narrate_logger.error(f"❌ LLM API error: {error_msg}")
+            logging.error(f"❌ LLM API error: {error_msg}")
+            await tts_queue.put(None)  # Signal TTS to stop
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 4,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
+        except Exception as e:
+            error_occurred = True
+            error_msg = f"LLM error: {str(e)}"
+            narrate_logger.error(f"❌ LLM error: {error_msg}", exc_info=True)
+            logging.error(f"❌ LLM error: {error_msg}", exc_info=True)
+            await tts_queue.put(None)  # Signal TTS to stop
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 4,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
 
     async def run_tts() -> None:
-        tts_chunk_count = 0
-        while True:
-            block = await tts_queue.get()
-            if block is None:
-                break
+        try:
+            tts_chunk_count = 0
+            while True:
+                block = await tts_queue.get()
+                if block is None:
+                    break
 
-            tts_chunk_count += 1
-            narrate_logger.info("🎤 Sending to TTS #%d (%d chars): %s", tts_chunk_count, len(block), repr(block))
+                tts_chunk_count += 1
+                narrate_logger.info("🎤 Sending to TTS #%d (%d chars): %s", tts_chunk_count, len(block), repr(block))
 
-            # Accumulate all audio chunks for this text block into a single MP3
-            audio_buffer = bytearray()
-            audio_fragment_count = 0
-            async for audio_chunk in stream_tts(
-                block,
-                session.api_key,
-                session.voice,
-                instructions=character.tts_instructions,
-            ):
-                audio_fragment_count += 1
-                audio_buffer.extend(audio_chunk)
-                narrate_logger.debug("   🎵 Audio fragment #%d: %d bytes", audio_fragment_count, len(audio_chunk))
+                # Accumulate all audio chunks for this text block into a single MP3
+                audio_buffer = bytearray()
+                audio_fragment_count = 0
+                async for audio_chunk in stream_tts(
+                    block,
+                    session.api_key,
+                    session.voice,
+                    instructions=character.tts_instructions,
+                ):
+                    audio_fragment_count += 1
+                    audio_buffer.extend(audio_chunk)
+                    narrate_logger.debug("   🎵 Audio fragment #%d: %d bytes", audio_fragment_count, len(audio_chunk))
 
-            # Send complete MP3 file as one event
-            if audio_buffer:
-                narrate_logger.info("   ✅ Complete MP3 #%d: %d bytes (from %d fragments)",
-                                   tts_chunk_count, len(audio_buffer), audio_fragment_count)
-                await send_audio_event(send, bytes(audio_buffer), encoding="hex")
+                # Send complete MP3 file as one event
+                if audio_buffer:
+                    narrate_logger.info("   ✅ Complete MP3 #%d: %d bytes (from %d fragments)",
+                                       tts_chunk_count, len(audio_buffer), audio_fragment_count)
+                    await send_audio_event(send, bytes(audio_buffer), encoding="hex")
+        except openai.RateLimitError as e:
+            error_occurred = True
+            error_msg = f"OpenAI TTS API rate limit exceeded: {str(e)}"
+            narrate_logger.error(f"❌ TTS rate limit error: {error_msg}")
+            logging.error(f"❌ TTS rate limit error: {error_msg}")
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 5,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
+        except openai.APIError as e:
+            error_occurred = True
+            error_msg = f"OpenAI TTS API error: {str(e)}"
+            narrate_logger.error(f"❌ TTS API error: {error_msg}")
+            logging.error(f"❌ TTS API error: {error_msg}")
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 5,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
+        except Exception as e:
+            error_occurred = True
+            error_msg = f"TTS error: {str(e)}"
+            narrate_logger.error(f"❌ TTS error: {error_msg}", exc_info=True)
+            logging.error(f"❌ TTS error: {error_msg}", exc_info=True)
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 5,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
 
-    await asyncio.gather(run_llm(), run_tts())
-    narrate_logger.info("✅ Narration complete, sending result response with id=%s", msg.get("id"))
-    await send({"jsonrpc": "2.0", "result": "done", "id": msg.get("id")})
-    narrate_logger.info("✅ Result response sent")
+    try:
+        await asyncio.gather(run_llm(), run_tts())
+        # Only send success response if no error was sent
+        if not error_occurred:
+            narrate_logger.info("✅ Narration complete, sending result response with id=%s", msg.get("id"))
+            await send({"jsonrpc": "2.0", "result": "done", "id": msg.get("id")})
+            narrate_logger.info("✅ Result response sent")
+    except Exception as e:
+        # This catches any errors in the gather itself
+        if not error_occurred:
+            error_msg = f"Narration error: {str(e)}"
+            narrate_logger.error(f"❌ Narration error: {error_msg}", exc_info=True)
+            logging.error(f"❌ Narration error: {error_msg}", exc_info=True)
+            await send({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 6,
+                    "message": error_msg
+                },
+                "id": msg.get("id")
+            })
 
 
 async def handle_initialize(msg: Dict[str, Any]) -> None:
