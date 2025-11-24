@@ -40,7 +40,7 @@ CRITICAL RULES:
 4. Be EXTREMELY BRIEF - capture only the ESSENTIAL POINT, then add emotional commentary
 5. If input contains ONLY user input, UI/formatting, or system messages with NO meaningful agent output, output NOTHING (empty response)
 6. If input is incomplete or unclear, output empty string
-7. Keep output VERY SHORT - aim for 1-2 short phrases or sentences maximum
+7. Keep output VERY SHORT - aim for 1-2 short phrases or sentences maximum, NEVER exceed 50 characters total
 8. DO NOT explain what the user wants to do - only comment on what the system/agent is showing
 9. Automatically detect the language(s) in the content and narrate in the same language(s)
 10. PRESERVE the language mix of the input - if input is Chinese-English mixed, output MUST be Chinese-English mixed (not pure English or pure Chinese)
@@ -54,6 +54,7 @@ OUTPUT STYLE:
 - Use casual, conversational phrases like "好，听好了" / "你看这里" / "相信我" / "总之"
 - Be VERY concise - if the agent finished quickly, your narration should also be quick
 - Focus on the EMOTIONAL IMPACT, not the technical details
+- STRICT LENGTH LIMIT: Your output must be under 50 characters. If you exceed this, you have failed the task.
 
 What to IGNORE (never mention):
 - Lines starting with ">" or "›" (user input - NEVER narrate these)
@@ -97,7 +98,8 @@ Remember:
 - Be EXTREMELY BRIEF - capture the essence, add emotion, move on
 - Speak like chatting with a programmer friend
 - PRESERVE the exact language mix of the input
-- When in doubt, output empty string or keep it to one short phrase"""
+- When in doubt, output empty string or keep it to one short phrase
+- CRITICAL: Maximum output length is 50 characters. Count your characters and stay under this limit."""
 
 # Default mode is chat
 DEFAULT_SYSTEM_PROMPT = NARRATION_MODE_SYSTEM_PROMPT
@@ -130,6 +132,7 @@ async def stream_llm(
     model: str = DEFAULT_MODEL,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     character: Optional[Character] = None,
+    max_tokens: Optional[int] = None,
 ) -> AsyncIterator[str]:
     """Yields text tokens from the chat completions API for a given session."""
     client = openai.AsyncOpenAI(api_key=api_key)
@@ -148,11 +151,15 @@ async def stream_llm(
         {"role": "user", "content": prompt}
     ]
 
-    response = await client.chat.completions.create(
-        model=model,
-        messages=messages,
-        stream=True,
-    )
+    create_params = {
+        "model": model,
+        "messages": messages,
+        "stream": True,
+    }
+    if max_tokens is not None:
+        create_params["max_tokens"] = max_tokens
+
+    response = await client.chat.completions.create(**create_params)
 
     async for chunk in response:
         if not chunk.choices:

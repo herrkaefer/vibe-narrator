@@ -150,8 +150,12 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
         # Select system prompt based on mode
         if session.mode == "narration":
             stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
+            # Limit max_tokens for narration mode to keep responses brief
+            stream_params["max_tokens"] = 30
         elif session.mode == "chat":
             stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
+            # Chat mode can be longer, but still limit to avoid excessive output
+            stream_params["max_tokens"] = 50
         # If no explicit mode, llm.py will use its default (chat mode)
 
         # Add character for role-playing

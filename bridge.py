@@ -902,7 +902,9 @@ Examples:
             signal.signal(signal.SIGWINCH, _handle_winch)
 
         # Initialize text buffer
-        text_buffer = TextBuffer(min_window_seconds=2.0, pause_threshold=5.0)
+        # Increased accumulation time to reduce send frequency and LLM/TTS calls
+        # This helps reduce lag when agent output is complete
+        text_buffer = TextBuffer(min_window_seconds=3.0, pause_threshold=5.0)
 
         # Bidirectional communication loop
         try:
