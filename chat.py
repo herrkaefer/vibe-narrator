@@ -26,9 +26,9 @@ def main():
 
     try:
         while True:
-            # Read user input
+            # Read user input with ">" prompt
             try:
-                user_input = input("You: ").strip()
+                user_input = input("> ").strip()
             except EOFError:
                 # Handle Ctrl+D
                 print()
@@ -42,13 +42,11 @@ def main():
             if user_input.lower() in ["/quit", "/exit"]:
                 print("👋 Goodbye!")
                 break
-            elif user_input.lower() == "/clear":
-                print("📝 (Clear history not implemented yet)")
-                continue
 
-            # Simply print the user input to stdout
+            # Send to bridge WITHOUT echoing to terminal
             # Bridge will capture this and send to MCP
-            print(user_input)
+            # User already saw their input from the "> " prompt
+            # sys.stdout.write(user_input + "\n")
             sys.stdout.flush()
 
     except KeyboardInterrupt:
