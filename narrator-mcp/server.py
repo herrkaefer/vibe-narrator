@@ -154,14 +154,24 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
             await send_text_event(send, token)
             block = chunker.add_token(token)
             if block:
-                narrate_logger.info("📦 Chunk ready for TTS (%d chars): %s", len(block), repr(block))
-                await tts_queue.put(block)
+                # Strip whitespace and quotes to check if content is meaningful
+                stripped = block.strip().strip('"').strip("'").strip()
+                if stripped:  # Only send to TTS if there's actual content
+                    narrate_logger.info("📦 Chunk ready for TTS (%d chars): %s", len(block), repr(block))
+                    await tts_queue.put(block)
+                else:
+                    narrate_logger.info("⏭️ Skipping empty chunk: %s", repr(block))
 
         narrate_logger.info("✅ LLM streaming complete (%d tokens)", token_count)
         leftover = chunker.flush()
         if leftover:
-            narrate_logger.info("📦 Final chunk for TTS (%d chars): %s", len(leftover), repr(leftover))
-            await tts_queue.put(leftover)
+            # Strip whitespace and quotes to check if content is meaningful
+            stripped = leftover.strip().strip('"').strip("'").strip()
+            if stripped:  # Only send to TTS if there's actual content
+                narrate_logger.info("📦 Final chunk for TTS (%d chars): %s", len(leftover), repr(leftover))
+                await tts_queue.put(leftover)
+            else:
+                narrate_logger.info("⏭️ Skipping empty final chunk: %s", repr(leftover))
 
         await tts_queue.put(None)
 

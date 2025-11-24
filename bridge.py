@@ -889,7 +889,7 @@ Examples:
             signal.signal(signal.SIGWINCH, _handle_winch)
 
         # Initialize text buffer
-        text_buffer = TextBuffer(min_window_seconds=1.0, pause_threshold=2.0)
+        text_buffer = TextBuffer(min_window_seconds=1.0, pause_threshold=5.0)
 
         # Bidirectional communication loop
         try:
@@ -900,7 +900,6 @@ Examples:
                 if text_buffer.should_flush(current_time):
                     buffered_text = text_buffer.flush()
                     if buffered_text:
-                        # bridge.send_chunk(buffered_text)
                         clean = clean_text(buffered_text)
                         if clean:
                             bridge.send_chunk(clean)
