@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 import openai
 
@@ -16,15 +16,19 @@ async def stream_tts(
     api_key: str,
     voice: str = DEFAULT_TTS_VOICE,
     model: str = DEFAULT_TTS_MODEL,
+    instructions: Optional[str] = None,
 ) -> AsyncIterator[bytes]:
     """Yields audio bytes for the provided chunk of text using the session key."""
     client = openai.AsyncOpenAI(api_key=api_key)
-    response = await client.audio.speech.create(
-        model=model,
-        voice=voice,
-        input=text_block,
-        response_format=TTS_FORMAT,
-    )
+    create_params = {
+        "model": model,
+        "voice": voice,
+        "input": text_block,
+        "response_format": TTS_FORMAT,
+    }
+    if instructions:
+        create_params["instructions"] = instructions
+    response = await client.audio.speech.create(**create_params)
 
     # OpenAI audio.speech returns HttpxBinaryResponseContent
     # We need to read the content and yield it in chunks

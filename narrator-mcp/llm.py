@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 import openai
+
+from characters import Character, get_default_character
 
 DEFAULT_MODEL = "gpt-4o-mini"
 
@@ -103,18 +105,48 @@ Remember: NEVER narrate user input (lines starting with ">" or "›"). NEVER nar
 DEFAULT_SYSTEM_PROMPT = NARRATION_MODE_SYSTEM_PROMPT
 
 
+def get_character_modified_system_prompt(
+    base_system_prompt: str,
+    character: Optional[Character] = None,
+) -> str:
+    """Combine base system prompt with character role-playing modifier."""
+    if character is None:
+        character = get_default_character()
+
+    # Combine base prompt with character modifier
+    # The character modifier tells LLM to role-play and interpret content in character's style
+    combined_prompt = f"""{base_system_prompt}
+
+---
+
+CHARACTER ROLE-PLAYING:
+
+{character.llm_system_prompt_modifier}"""
+
+    return combined_prompt
+
+
 async def stream_llm(
     prompt: str,
     api_key: str,
     model: str = DEFAULT_MODEL,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    character: Optional[Character] = None,
 ) -> AsyncIterator[str]:
     """Yields text tokens from the chat completions API for a given session."""
     client = openai.AsyncOpenAI(api_key=api_key)
 
+    # Apply character modification to system prompt if character is provided
+    final_system_prompt = system_prompt
+    if character is not None:
+        final_system_prompt = get_character_modified_system_prompt(
+            base_system_prompt=system_prompt,
+            character=character,
+        )
+
     # Build messages with system prompt
     messages = [
-        {"role": "system", "content": system_prompt},
+        {"role": "system", "content": final_system_prompt},
         {"role": "user", "content": prompt}
     ]
 
@@ -133,4 +165,10 @@ async def stream_llm(
             yield content
 
 
-__all__ = ["DEFAULT_MODEL", "stream_llm", "CHAT_MODE_SYSTEM_PROMPT", "NARRATION_MODE_SYSTEM_PROMPT"]
+__all__ = [
+    "DEFAULT_MODEL",
+    "stream_llm",
+    "CHAT_MODE_SYSTEM_PROMPT",
+    "NARRATION_MODE_SYSTEM_PROMPT",
+    "get_character_modified_system_prompt",
+]

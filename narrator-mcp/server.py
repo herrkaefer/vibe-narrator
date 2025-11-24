@@ -17,6 +17,7 @@ from events import send_audio_event, send_text_event
 from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
 from session import Session
 from tts import stream_tts
+from characters import get_default_character
 
 session = Session()
 chunker = Chunker(max_tokens=12, sentence_boundary=True)
@@ -132,6 +133,11 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
     logging.info("🎧 Narrate request received")
     narrate_logger.info("📝 Narrate text:\n%s", prompt)
 
+    # Get current character (hardcoded default for now)
+    character = get_default_character()
+    logging.info(f"🎭 Using character: {character.name}")
+    narrate_logger.info(f"🎭 Character: {character.name} (id: {character.id})")
+
     async def run_llm() -> None:
         token_count = 0
         # Determine system prompt based on mode
@@ -147,6 +153,9 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
         elif session.mode == "chat":
             stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
         # If no explicit mode, llm.py will use its default (chat mode)
+
+        # Add character for role-playing
+        stream_params["character"] = character
 
         async for token in stream_llm(**stream_params):
             token_count += 1
@@ -192,6 +201,7 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
                 block,
                 session.api_key,
                 session.voice,
+                instructions=character.tts_instructions,
             ):
                 audio_fragment_count += 1
                 audio_buffer.extend(audio_chunk)
