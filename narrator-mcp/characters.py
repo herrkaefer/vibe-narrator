@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 # Default character ID (hardcoded for initial experimentation)
-DEFAULT_CHARACTER_ID = "burned_out"
+DEFAULT_CHARACTER_ID = "over_confident"
 
 
 @dataclass

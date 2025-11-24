@@ -142,6 +142,7 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
     narrate_logger.info(f"🎭 Character: {character.name} (id: {character.id})")
 
     async def run_llm() -> None:
+        nonlocal error_occurred
         try:
             token_count = 0
             # Determine system prompt based on mode
@@ -235,6 +236,7 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
             })
 
     async def run_tts() -> None:
+        nonlocal error_occurred
         try:
             tts_chunk_count = 0
             while True:
