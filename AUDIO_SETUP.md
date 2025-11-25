@@ -97,7 +97,7 @@ uv sync
 可能是网络或 OpenAI API 响应慢。解决方法:
 
 1. 检查网络连接
-2. 尝试使用更快的模型 (在 `.env` 中设置 `OPENAI_MODEL=gpt-4o-mini`)
+2. 尝试使用更快的模型 (在 `.env` 中设置 `LLM_MODEL=gpt-4o-mini`)
 3. 查看日志中的 API 响应时间
 
 ### 问题: "Error playing audio chunk"

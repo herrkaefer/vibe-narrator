@@ -102,9 +102,12 @@ async def handle_config(msg: Dict[str, Any]) -> None:
     session.voice = params.get("voice", session.voice)
     session.mode = params.get("mode", session.mode)
     session.character = params.get("character", session.character)
+    session.base_url = params.get("base_url", session.base_url)
+    session.default_headers = params.get("default_headers", session.default_headers)
 
     # Log configuration
-    logging.info(f"✅ Session configured (model={session.model}, voice={session.voice}, mode={session.mode}, character={session.character or 'default'})")
+    provider_info = f"base_url={session.base_url}" if session.base_url else "provider=OpenAI"
+    logging.info(f"✅ Session configured (model={session.model}, voice={session.voice}, mode={session.mode}, character={session.character or 'default'}, {provider_info})")
 
     await send({"jsonrpc": "2.0", "result": "ok", "id": msg.get("id")})
 
@@ -152,6 +155,12 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
                 "api_key": session.api_key,
                 "model": session.model
             }
+
+            # Add base_url and headers if configured
+            if session.base_url:
+                stream_params["base_url"] = session.base_url
+            if session.default_headers:
+                stream_params["default_headers"] = session.default_headers
 
             # Select system prompt based on mode
             if session.mode == "narration":
@@ -251,12 +260,17 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
                 # Accumulate all audio chunks for this text block into a single MP3
                 audio_buffer = bytearray()
                 audio_fragment_count = 0
-                async for audio_chunk in stream_tts(
-                    block,
-                    session.api_key,
-                    session.voice,
-                    instructions=character.tts_instructions,
-                ):
+                tts_params = {
+                    "text_block": block,
+                    "api_key": session.api_key,
+                    "voice": session.voice,
+                    "instructions": character.tts_instructions,
+                }
+                if session.base_url:
+                    tts_params["base_url"] = session.base_url
+                if session.default_headers:
+                    tts_params["default_headers"] = session.default_headers
+                async for audio_chunk in stream_tts(**tts_params):
                     audio_fragment_count += 1
                     audio_buffer.extend(audio_chunk)
                     narrate_logger.debug("   🎵 Audio fragment #%d: %d bytes", audio_fragment_count, len(audio_chunk))

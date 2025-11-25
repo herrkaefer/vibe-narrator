@@ -265,7 +265,7 @@ tail -20 $(ls -t narrator-mcp/logs/narrator_*.log | head -1)
 ```bash
 # API Configuration
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o-mini
 OPENAI_TTS_VOICE=alloy
 
 # Mode: chat or narration

@@ -82,7 +82,7 @@ uv run python bridge.py ls -la
 OPENAI_API_KEY=sk-your-key-here
 
 # 可选
-OPENAI_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o-mini
 OPENAI_TTS_VOICE=alloy
 OPENAI_MODE=chat
 

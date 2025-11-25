@@ -154,9 +154,16 @@ async def stream_llm(
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     character: Optional[Character] = None,
     max_tokens: Optional[int] = None,
+    base_url: Optional[str] = None,
+    default_headers: Optional[dict] = None,
 ) -> AsyncIterator[str]:
     """Yields text tokens from the chat completions API for a given session."""
-    client = openai.AsyncOpenAI(api_key=api_key)
+    client_kwargs = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
+    client = openai.AsyncOpenAI(**client_kwargs)
 
     # Apply character modification to system prompt if character is provided
     final_system_prompt = system_prompt

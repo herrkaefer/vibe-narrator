@@ -17,9 +17,16 @@ async def stream_tts(
     voice: str = DEFAULT_TTS_VOICE,
     model: str = DEFAULT_TTS_MODEL,
     instructions: Optional[str] = None,
+    base_url: Optional[str] = None,
+    default_headers: Optional[dict] = None,
 ) -> AsyncIterator[bytes]:
     """Yields audio bytes for the provided chunk of text using the session key."""
-    client = openai.AsyncOpenAI(api_key=api_key)
+    client_kwargs = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
+    client = openai.AsyncOpenAI(**client_kwargs)
     create_params = {
         "model": model,
         "voice": voice,

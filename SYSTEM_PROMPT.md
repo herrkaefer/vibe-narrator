@@ -284,7 +284,7 @@ OPENAI_SYSTEM_PROMPT=You are a bilingual assistant. Detect the language of the u
 ```bash
 # API Configuration
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o-mini
 OPENAI_TTS_VOICE=alloy
 
 # System Prompt (optional)

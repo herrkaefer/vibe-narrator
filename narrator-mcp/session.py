@@ -20,6 +20,8 @@ class Session:
         self.voice: str = DEFAULT_VOICE
         self.mode: str = DEFAULT_MODE  # "chat" or "narration"
         self.character: Optional[str] = None  # character ID, defaults to DEFAULT_CHARACTER_ID if None
+        self.base_url: Optional[str] = None  # Optional base URL for API (e.g., OpenRouter)
+        self.default_headers: Optional[dict] = None  # Optional headers (e.g., for OpenRouter)
 
 
 __all__ = ["Session", "DEFAULT_MODEL", "DEFAULT_VOICE", "DEFAULT_MODE"]

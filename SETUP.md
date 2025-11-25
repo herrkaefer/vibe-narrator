@@ -100,16 +100,45 @@ uv run python bridge.py claude
 
 在 `.env` 文件中可以配置:
 
+### 基础配置 (OpenAI)
+
 ```bash
 # 必需
 OPENAI_API_KEY=sk-your-key-here
 
 # 可选 (默认值如下)
-OPENAI_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o-mini
 OPENAI_TTS_VOICE=alloy
 
 # 可用的语音选项:
 # alloy, echo, fable, onyx, nova, shimmer
+```
+
+### OpenRouter 配置
+
+如果你想使用 OpenRouter 访问更多模型 (如 Claude, Gemini 等):
+
+```bash
+# 使用 OpenRouter
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+LLM_MODEL=anthropic/claude-3.5-sonnet  # OpenRouter 支持的模型格式
+
+# 可选: OpenRouter 要求的 headers
+OPENROUTER_REFERER=https://github.com/herrkaefer/vibe-narrator
+OPENROUTER_TITLE=Vibe Narrator
+```
+
+**注意**:
+- 如果同时设置了 `OPENROUTER_API_KEY` 和 `OPENAI_API_KEY`，优先使用 OpenRouter
+- OpenRouter 的 TTS 支持可能有限，建议继续使用 OpenAI 的 TTS (通过 `OPENAI_API_KEY` 和 `OPENAI_TTS_VOICE`)
+
+### 自定义 API 端点
+
+```bash
+# 使用自定义 OpenAI 兼容的 API
+OPENAI_API_KEY=sk-xxxxx
+OPENAI_BASE_URL=https://your-custom-api.com/v1
+LLM_MODEL=your-model-name
 ```
 
 ## 测试脚本

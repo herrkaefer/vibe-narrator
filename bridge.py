@@ -143,7 +143,7 @@ logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
-    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None, mode=None, character=None):
+    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None, mode=None, character=None, base_url=None, default_headers=None):
         # Get the directory where this script is located
         script_dir = Path(__file__).parent.absolute()
         narrator_path = script_dir / "narrator-mcp" / "server.py"
@@ -154,6 +154,8 @@ class MCPBridge:
         self.voice = voice
         self.mode = mode  # "chat" or "narration"
         self.character = character  # character ID
+        self.base_url = base_url  # Optional base URL (e.g., for OpenRouter)
+        self.default_headers = default_headers  # Optional headers (e.g., for OpenRouter)
         self.config_sent = False
 
         # Use default command if not provided. Prefer the packaged server if present.
@@ -251,6 +253,10 @@ class MCPBridge:
             config_params["mode"] = self.mode
         if self.character:
             config_params["character"] = self.character
+        if self.base_url:
+            config_params["base_url"] = self.base_url
+        if self.default_headers:
+            config_params["default_headers"] = self.default_headers
 
         self._send({
             "jsonrpc": "2.0",
@@ -259,7 +265,8 @@ class MCPBridge:
             "params": config_params
         })
 
-        config_info = f"model={self.model or 'default'}, voice={self.voice or 'default'}, mode={self.mode or 'chat'}, character={self.character or 'default'}"
+        provider_info = f"base_url={self.base_url}" if self.base_url else "provider=OpenAI"
+        config_info = f"model={self.model or 'default'}, voice={self.voice or 'default'}, mode={self.mode or 'chat'}, character={self.character or 'default'}, {provider_info}"
         logger.info(f"🔑 Sent config to MCP Server ({config_info})")
 
         # Wait for config response
@@ -825,8 +832,41 @@ Examples:
         logger.warning(f"⚠️ No .env file found at {env_file}")
 
     # Get API configuration from environment
-    api_key = os.getenv("OPENAI_API_KEY")
-    model = os.getenv("OPENAI_MODEL")
+    # Check for OpenRouter first (if OPENROUTER_API_KEY is set, use OpenRouter)
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+
+    base_url = None
+    default_headers = None
+    api_key = None
+
+    if openrouter_api_key:
+        # Use OpenRouter
+        api_key = openrouter_api_key
+        base_url = "https://openrouter.ai/api/v1"
+        # OpenRouter requires HTTP-Referer and optionally X-Title headers
+        default_headers = {
+            "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "https://github.com/herrkaefer/vibe-narrator"),
+            "X-Title": os.getenv("OPENROUTER_TITLE", "Vibe Narrator"),
+        }
+        logger.info("🌐 Using OpenRouter as LLM provider")
+    elif openai_api_key:
+        # Use OpenAI (default) or custom base_url
+        api_key = openai_api_key
+        custom_base_url = os.getenv("OPENAI_BASE_URL")
+        if custom_base_url:
+            base_url = custom_base_url
+            logger.info(f"🔗 Using custom base URL: {base_url}")
+        else:
+            logger.info("🤖 Using OpenAI as LLM provider")
+    else:
+        logger.error("❌ Neither OPENAI_API_KEY nor OPENROUTER_API_KEY found in environment")
+        logger.error("Please create a .env file with your API key")
+        logger.error(f"Example: cp {script_dir}/.env.example {script_dir}/.env")
+        sys.exit(1)
+
+    # Model configuration
+    model = os.getenv("LLM_MODEL")
     voice = os.getenv("OPENAI_TTS_VOICE")
     mode = os.getenv("MODE")  # "chat" or "narration"
     character = os.getenv("CHARACTER")  # character ID
@@ -836,14 +876,8 @@ Examples:
     if debug_terminal:
         logger.info("🔍 Terminal debug logging ENABLED (set BRIDGE_DEBUG_TERMINAL=0 to disable)")
 
-    if not api_key:
-        logger.error("❌ OPENAI_API_KEY not found in environment")
-        logger.error("Please create a .env file with your OpenAI API key")
-        logger.error(f"Example: cp {script_dir}/.env.example {script_dir}/.env")
-        sys.exit(1)
-
     logger.info("🧩 Starting MCP Bridge...")
-    bridge = MCPBridge(api_key=api_key, model=model, voice=voice, mode=mode, character=character)
+    bridge = MCPBridge(api_key=api_key, model=model, voice=voice, mode=mode, character=character, base_url=base_url, default_headers=default_headers)
     time.sleep(0.5)
 
     # Create a pseudo terminal pair

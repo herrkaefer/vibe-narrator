@@ -171,7 +171,7 @@ Bridge 通过 PTY（伪终端）捕获 chat.py 的输出：
 
 ```bash
 # AI 模型
-OPENAI_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o-mini
 
 # 语音选项
 OPENAI_TTS_VOICE=alloy
