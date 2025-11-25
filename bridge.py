@@ -760,6 +760,79 @@ class TextBuffer:
         return result
 
 
+class StatusBar:
+    """
+    Simple status bar displayed at the bottom of the terminal
+    Shows buffer status, pending requests, and statistics
+    """
+    def __init__(self):
+        self.rows, self.cols = self._get_terminal_size()
+        self.status_line = self.rows  # Use last line for status
+        self.enabled = sys.stdout.isatty()  # Only enable if stdout is a TTY
+
+    def _get_terminal_size(self):
+        """Get current terminal size"""
+        try:
+            fallback = shutil.get_terminal_size(fallback=(80, 24))
+            return fallback.lines, fallback.columns
+        except:
+            return 24, 80
+
+    def update(self, buffer_size=0, pending_requests=0, audio_chunks=0, text_tokens=0):
+        """Update status bar with current information"""
+        if not self.enabled:
+            return
+
+        # Update terminal size in case it changed
+        self.rows, self.cols = self._get_terminal_size()
+        self.status_line = self.rows
+
+        # Build status text with fixed-width fields to prevent flickering
+        # Format: Narrator: Buffer: 1234 | Pending: 5 | Audio: 678 | Tokens: 9012
+        status_text = (
+            f"Narrator: "
+            f"Buffer: {buffer_size:>6} | "
+            f"Pending: {pending_requests:>3} | "
+            f"Audio: {audio_chunks:>6} | "
+            f"Tokens: {text_tokens:>6}"
+        )
+
+        # Ensure fixed width by padding or truncating to terminal width
+        max_len = self.cols
+        if len(status_text) > max_len:
+            status_text = status_text[:max_len]
+        else:
+            # Pad with spaces to fill the line
+            status_text = status_text.ljust(max_len)
+
+        # Save cursor position, move to status line, update, restore cursor
+        # Use bright colors: cyan background (46) + black text (30) + bold (1)
+        try:
+            sys.stdout.write('\x1b[s')  # Save cursor
+            sys.stdout.write(f'\x1b[{self.status_line};1H')  # Move to status line
+            sys.stdout.write('\x1b[K')  # Clear line
+            # Bright cyan background (46) + bold black text (1;30) for high contrast
+            sys.stdout.write('\x1b[46;1;30m' + status_text + '\x1b[0m')  # Bright cyan bg, bold black text
+            sys.stdout.write('\x1b[u')  # Restore cursor
+            sys.stdout.flush()
+        except (OSError, IOError):
+            # Terminal might not support these codes, silently fail
+            pass
+
+    def clear(self):
+        """Clear the status bar"""
+        if not self.enabled:
+            return
+        try:
+            sys.stdout.write('\x1b[s')
+            sys.stdout.write(f'\x1b[{self.status_line};1H')
+            sys.stdout.write('\x1b[K')
+            sys.stdout.write('\x1b[u')
+            sys.stdout.flush()
+        except (OSError, IOError):
+            pass
+
+
 if __name__ == "__main__":
     import pty
     import select
@@ -906,10 +979,25 @@ Examples:
         # This helps reduce lag when agent output is complete
         text_buffer = TextBuffer(min_window_seconds=3.5, pause_threshold=5.0)
 
+        # Initialize status bar
+        status_bar = StatusBar()
+        last_status_update = 0
+        status_update_interval = 0.5  # Update status bar every 0.5 seconds
+
         # Bidirectional communication loop
         try:
             while True:
                 current_time = time.time()
+
+                # Update status bar periodically
+                if current_time - last_status_update >= status_update_interval:
+                    status_bar.update(
+                        buffer_size=len(text_buffer.buffer),
+                        pending_requests=len(bridge.pending_requests),
+                        audio_chunks=bridge.audio_chunks_received,
+                        text_tokens=bridge.text_tokens_received
+                    )
+                    last_status_update = current_time
 
                 # Check if buffer should be flushed (even if there's no new data)
                 if text_buffer.should_flush(current_time):
@@ -918,6 +1006,14 @@ Examples:
                         clean = clean_text(buffered_text)
                         if clean:
                             bridge.send_chunk(clean)
+                            # Update status bar after sending
+                            status_bar.update(
+                                buffer_size=len(text_buffer.buffer),
+                                pending_requests=len(bridge.pending_requests),
+                                audio_chunks=bridge.audio_chunks_received,
+                                text_tokens=bridge.text_tokens_received
+                            )
+                            last_status_update = current_time
 
                 # Check which file descriptors have data to read
                 fds_to_read = [master_fd]
@@ -1062,6 +1158,9 @@ Examples:
         except KeyboardInterrupt:
             logger.info("⚠️ Interrupted by user")
         finally:
+            # Clear status bar before restoring terminal
+            if 'status_bar' in locals():
+                status_bar.clear()
             restore_terminal()
 
             # Process final remaining buffer
