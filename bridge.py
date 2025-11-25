@@ -827,7 +827,7 @@ Examples:
     # Get API configuration from environment
     api_key = os.getenv("OPENAI_API_KEY")
     model = os.getenv("OPENAI_MODEL")
-    voice = os.getenv("OPENAI_VOICE")
+    voice = os.getenv("OPENAI_TTS_VOICE")
     mode = os.getenv("MODE")  # "chat" or "narration"
     character = os.getenv("CHARACTER")  # character ID
 

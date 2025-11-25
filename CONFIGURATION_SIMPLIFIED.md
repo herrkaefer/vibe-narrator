@@ -36,7 +36,7 @@ OPENAI_API_KEY=sk-your-key-here
 
 # 可选
 OPENAI_MODEL=gpt-4o-mini
-OPENAI_VOICE=alloy
+OPENAI_TTS_VOICE=alloy
 MODE=chat  # 或 narration
 ```
 
@@ -138,7 +138,7 @@ MODE 环境变量
 # .env
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4o-mini
-OPENAI_VOICE=alloy
+OPENAI_TTS_VOICE=alloy
 MODE=chat
 ```
 

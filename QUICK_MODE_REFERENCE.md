@@ -83,7 +83,7 @@ OPENAI_API_KEY=sk-your-key-here
 
 # 可选
 OPENAI_MODEL=gpt-4o-mini
-OPENAI_VOICE=alloy
+OPENAI_TTS_VOICE=alloy
 OPENAI_MODE=chat
 
 # 高级：自定义 prompt（覆盖 mode）

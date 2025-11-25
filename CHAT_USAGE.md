@@ -174,7 +174,7 @@ Bridge 通过 PTY（伪终端）捕获 chat.py 的输出：
 OPENAI_MODEL=gpt-4o-mini
 
 # 语音选项
-OPENAI_VOICE=alloy
+OPENAI_TTS_VOICE=alloy
 # 可用: alloy, echo, fable, onyx, nova, shimmer
 ```
 

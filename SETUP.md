@@ -106,7 +106,7 @@ OPENAI_API_KEY=sk-your-key-here
 
 # 可选 (默认值如下)
 OPENAI_MODEL=gpt-4o-mini
-OPENAI_VOICE=alloy
+OPENAI_TTS_VOICE=alloy
 
 # 可用的语音选项:
 # alloy, echo, fable, onyx, nova, shimmer

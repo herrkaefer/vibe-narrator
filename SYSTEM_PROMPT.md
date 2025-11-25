@@ -285,7 +285,7 @@ OPENAI_SYSTEM_PROMPT=You are a bilingual assistant. Detect the language of the u
 # API Configuration
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4o-mini
-OPENAI_VOICE=alloy
+OPENAI_TTS_VOICE=alloy
 
 # System Prompt (optional)
 OPENAI_SYSTEM_PROMPT=You are a helpful voice assistant. Keep responses concise and natural for speech output. Ignore any formatting or control characters in the input.
