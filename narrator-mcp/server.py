@@ -110,11 +110,23 @@ async def configure(
     if default_headers is not None:
         ctx.session.default_headers = default_headers
 
-    provider_info = f"base_url={ctx.session.base_url}" if ctx.session.base_url else "provider=OpenAI"
-    logging.info(
-        f"✅ Session configured (model={ctx.session.model}, voice={ctx.session.voice}, "
-        f"mode={ctx.session.mode}, character={ctx.session.character or 'default'}, {provider_info})"
-    )
+    # Log all configuration (except api_key for security)
+    config_parts = [
+        f"model={ctx.session.model}",
+        f"voice={ctx.session.voice}",
+        f"mode={ctx.session.mode}",
+        f"character={ctx.session.character or 'default'}",
+    ]
+    if ctx.session.base_url:
+        config_parts.append(f"base_url={ctx.session.base_url}")
+    else:
+        config_parts.append("provider=OpenAI")
+    if ctx.session.default_headers:
+        headers_str = ", ".join(f"{k}={v[:20]}..." if len(str(v)) > 20 else f"{k}={v}"
+                               for k, v in ctx.session.default_headers.items())
+        config_parts.append(f"default_headers=[{headers_str}]")
+
+    logging.info(f"✅ Session configured: {', '.join(config_parts)}")
 
     return "Configuration updated successfully"
 
@@ -161,8 +173,6 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
     Returns (generated_text, audio_mp3_bytes)
     """
     character = get_character(ctx.session.character)
-    logging.info(f"🎭 Using character: {character.name}")
-    narrate_logger.info(f"🎭 Character: {character.name} (id: {character.id})")
 
     tts_queue: asyncio.Queue[str | None] = asyncio.Queue()
     generated_text_tokens: list[str] = []
