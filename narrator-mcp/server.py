@@ -17,7 +17,7 @@ from events import send_audio_event, send_text_event
 from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
 from session import Session
 from tts import stream_tts
-from characters import get_character, get_default_character
+from characters import get_character, get_default_character, list_characters
 
 import openai
 
@@ -343,6 +343,17 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
             })
 
 
+async def handle_list_characters(msg: Dict[str, Any]) -> None:
+    """Handle list characters request."""
+    characters = list_characters()
+    logging.info(f"📋 Listing {len(characters)} available characters")
+    await send({
+        "jsonrpc": "2.0",
+        "result": {"characters": characters},
+        "id": msg.get("id")
+    })
+
+
 async def handle_initialize(msg: Dict[str, Any]) -> None:
     """Handle MCP initialize request."""
     await send({
@@ -377,6 +388,9 @@ async def handle_message(msg: Dict[str, Any]) -> None:
         return
     if method == "narrate":
         await handle_narrate(msg)
+        return
+    if method == "list_characters":
+        await handle_list_characters(msg)
         return
 
     # Unknown method
