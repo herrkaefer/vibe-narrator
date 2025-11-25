@@ -753,15 +753,25 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
 
     os.close(slave_fd)
 
+    # Define restore_terminal BEFORE setting raw mode, so it's always available
+    def restore_terminal():
+        """Restore terminal settings."""
+        if old_settings is not None and stdin_is_tty:
+            try:
+                # Use TCSAFLUSH to discard any pending input before restoring
+                termios.tcsetattr(sys.stdin, termios.TCSAFLUSH, old_settings)
+            except (OSError, termios.error) as e:
+                logger.warning(f"Failed to restore terminal settings (TCSAFLUSH): {e}")
+                # Try TCSADRAIN as fallback
+                try:
+                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                except (OSError, termios.error) as e2:
+                    logger.warning(f"Failed to restore terminal settings (TCSADRAIN): {e2}")
+
     # Set terminal to raw mode
     try:
         if stdin_is_tty:
             tty.setraw(sys.stdin.fileno())
-
-        def restore_terminal():
-            """Restore terminal settings."""
-            if old_settings is not None:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
         def signal_handler(sig, frame):
             restore_terminal()
@@ -868,6 +878,8 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
                         await bridge.send_chunk(clean)
 
     finally:
+        # Ensure terminal is restored even if inner try block fails
+        restore_terminal()
         logger.info("🔚 Closing PTY...")
         os.close(master_fd)
 
