@@ -69,6 +69,11 @@ class AudioPlayer:
             logger.warning("⚠️  Audio player not started, cannot add chunk")
             return
 
+        # Skip empty audio data
+        if not mp3_data or len(mp3_data) == 0:
+            logger.debug("⏭️ Skipping empty audio chunk")
+            return
+
         self.audio_queue.put(mp3_data)
         logger.debug(f"Added audio chunk to queue ({len(mp3_data)} bytes)")
 

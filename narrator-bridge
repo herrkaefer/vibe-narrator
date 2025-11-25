@@ -1,0 +1,24 @@
+#!/bin/bash
+# narrator-bridge - Run coding agent with narration
+# Usage: narrator-bridge <command> [args...]
+#
+# This script can be run from any directory.
+# The command will execute in the current working directory.
+
+NARRATOR_DIR="/Users/herrk/dev-local/vibe-narrator"
+
+if [ ! -d "$NARRATOR_DIR" ]; then
+    echo "Error: Narrator directory not found: $NARRATOR_DIR" >&2
+    exit 1
+fi
+
+if [ ! -f "$NARRATOR_DIR/bridge.py" ]; then
+    echo "Error: bridge.py not found in $NARRATOR_DIR" >&2
+    exit 1
+fi
+
+# Use --directory to specify where to find dependencies
+# but preserve current working directory for the command
+uv run --directory "$NARRATOR_DIR" python "$NARRATOR_DIR/bridge.py" "$@"
+
+
