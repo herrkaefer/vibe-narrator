@@ -3,12 +3,17 @@
 
 set -e
 
-if [ ! -f .env ]; then
+# Get project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
     echo "❌ Missing .env file"
     echo "Run: cp .env.example .env (then add your API key)"
     exit 1
 fi
 
+cd "$PROJECT_ROOT"
 source .env
 if [ -z "$OPENAI_API_KEY" ]; then
     echo "❌ OPENAI_API_KEY not set in .env"
@@ -26,4 +31,4 @@ echo "Starting in 2 seconds..."
 sleep 2
 
 # Run chat through bridge
-uv run python bridge.py python chat.py
+uv run python narrator-client/bridge.py python narrator-client/chat.py

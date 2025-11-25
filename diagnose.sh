@@ -37,12 +37,22 @@ echo ""
 
 # Check dependencies
 echo "4. Checking Python dependencies..."
-if uv run python -c "import openai; import dotenv; print('✅ All required packages installed')" 2>/dev/null; then
+echo "  Checking narrator-mcp dependencies..."
+if cd narrator-mcp && uv run python -c "import openai; import fastmcp; print('✅ MCP server dependencies OK')" 2>/dev/null; then
     :
 else
-    echo "❌ Some dependencies missing"
-    echo "Run: uv sync"
+    echo "  ❌ MCP server dependencies missing"
+    echo "  Run: cd narrator-mcp && uv sync"
 fi
+cd ..
+echo "  Checking narrator-client dependencies..."
+if cd narrator-client && uv run python -c "import fastmcp; import httpx; import pyaudio; print('✅ Client dependencies OK')" 2>/dev/null; then
+    :
+else
+    echo "  ❌ Client dependencies missing"
+    echo "  Run: cd narrator-client && uv sync"
+fi
+cd ..
 echo ""
 
 # Check MCP server script
@@ -64,12 +74,12 @@ echo ""
 
 # Check logs directory
 echo "6. Checking logs..."
-if [ -d logs ]; then
-    echo "✅ logs/ directory exists"
+if [ -d narrator-client/logs ]; then
+    echo "✅ narrator-client/logs/ directory exists"
     echo "Recent bridge logs:"
-    ls -lt logs/bridge_*.log 2>/dev/null | head -3 || echo "  (no logs yet)"
+    ls -lt narrator-client/logs/bridge_*.log 2>/dev/null | head -3 || echo "  (no logs yet)"
 else
-    echo "⚠️  logs/ directory doesn't exist (will be created on first run)"
+    echo "⚠️  narrator-client/logs/ directory doesn't exist (will be created on first run)"
 fi
 echo ""
 
@@ -86,6 +96,8 @@ echo "=== Diagnostic Complete ==="
 echo ""
 echo "Next steps:"
 echo "  1. If .env is missing: cp .env.example .env (then edit with your API key)"
-echo "  2. If dependencies are missing: uv sync"
-echo "  3. Test MCP server: ./test_mcp_only.sh"
-echo "  4. Test full bridge: ./test_config.sh"
+echo "  2. If dependencies are missing:"
+echo "     - cd narrator-mcp && uv sync"
+echo "     - cd narrator-client && uv sync"
+echo "  3. Test MCP server: narrator-client/tests/test_mcp_only.sh"
+echo "  4. Test full bridge: narrator-client/tests/test_config.sh"

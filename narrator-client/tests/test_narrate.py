@@ -6,9 +6,10 @@ import sys
 import os
 from pathlib import Path
 
-# Load .env
-script_dir = Path(__file__).parent
-env_file = script_dir / ".env"
+# Load .env (look in project root)
+test_dir = Path(__file__).parent
+project_root = test_dir.parent.parent  # narrator-client -> project root
+env_file = project_root / ".env"
 if env_file.exists():
     with open(env_file) as f:
         for line in f:
@@ -21,7 +22,7 @@ if not api_key:
     print("❌ OPENAI_API_KEY not set")
     sys.exit(1)
 
-narrator_path = script_dir / "narrator-mcp" / "server.py"
+narrator_path = project_root / "narrator-mcp" / "server.py"
 
 print("Starting MCP server...")
 proc = subprocess.Popen(

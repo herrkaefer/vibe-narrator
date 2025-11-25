@@ -1,17 +1,23 @@
 #!/bin/bash
 # Simple test script to verify bridge configuration
 
+# Get project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 echo "Testing vibe-narrator configuration..."
 echo ""
 
 # Check if .env exists
-if [ ! -f .env ]; then
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
     echo "❌ .env file not found"
     echo "Please create it from .env.example:"
     echo "  cp .env.example .env"
     echo "  # Then edit .env and add your OpenAI API key"
     exit 1
 fi
+
+cd "$PROJECT_ROOT"
 
 # Check if OPENAI_API_KEY is set in .env
 if ! grep -q "^OPENAI_API_KEY=" .env; then
@@ -35,11 +41,11 @@ echo ""
 echo "----------------------------------------"
 
 # Run the test
-uv run python bridge.py echo "Hello, this is a test"
+uv run python narrator-client/bridge.py echo "Hello, this is a test"
 
 echo ""
 echo "----------------------------------------"
 echo ""
 echo "Check the logs for details:"
-echo "  Bridge log: $(ls -t logs/bridge_*.log | head -1)"
+echo "  Bridge log: $(ls -t narrator-client/logs/bridge_*.log 2>/dev/null | head -1)"
 echo "  Narrator log: $(ls -t narrator-mcp/logs/narrator_*.log 2>/dev/null | head -1)"

@@ -131,22 +131,27 @@ class _AnsiCleaner:
 _ansi_cleaner = _AnsiCleaner()
 
 # Get script directory for storing log files
-script_dir = Path(__file__).parent.absolute()
-log_file = script_dir / "logs" / f"bridge_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-os.makedirs(script_dir / "logs", exist_ok=True)
+client_dir = Path(__file__).parent.absolute()
+log_file = client_dir / "logs" / f"bridge_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+os.makedirs(client_dir / "logs", exist_ok=True)
 
-# Configure logging output to file
+# Configure logging: file for all logs, console only for errors
+file_handler = RotatingFileHandler(
+    log_file,
+    maxBytes=10*1024*1024,  # 10MB
+    backupCount=5,
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+
+# Console handler only for errors
+console_handler = logging.StreamHandler(sys.stderr)
+console_handler.setLevel(logging.ERROR)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s]: %(message)s",
-    handlers=[
-        RotatingFileHandler(
-            log_file,
-            maxBytes=10*1024*1024,  # 10MB
-            backupCount=5,
-            encoding='utf-8'
-        )
-    ]
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
 logger.info(f"📝 Logging to file: {log_file}")
@@ -177,8 +182,10 @@ class MCPBridge:
 
     async def __aenter__(self):
         """Initialize MCP client connection."""
-        script_dir = Path(__file__).parent.absolute()
-        narrator_path = script_dir / "narrator-mcp" / "server.py"
+        # Get project root (parent of narrator-client)
+        client_dir = Path(__file__).parent.absolute()
+        project_root = client_dir.parent
+        narrator_path = project_root / "narrator-mcp" / "server.py"
 
         if not narrator_path.exists():
             raise FileNotFoundError(
@@ -186,7 +193,8 @@ class MCPBridge:
             )
 
         logger.info("🚀 Starting MCP client...")
-        logger.info(f"📁 Script directory: {script_dir}")
+        logger.info(f"📁 Client directory: {client_dir}")
+        logger.info(f"📁 Project root: {project_root}")
         logger.info(f"📄 Narrator path: {narrator_path}")
 
         # Check if server is already running
@@ -194,7 +202,7 @@ class MCPBridge:
 
         if not server_running:
             logger.info("🔧 MCP server not running, starting it...")
-            await self._start_server(script_dir, narrator_path)
+            await self._start_server(project_root, narrator_path)
         else:
             logger.info("✅ MCP server already running")
 
@@ -262,7 +270,7 @@ class MCPBridge:
         except Exception as e:
             logger.debug(f"Could not read server output: {e}")
 
-    async def _start_server(self, script_dir: Path, narrator_path: Path):
+    async def _start_server(self, project_root: Path, narrator_path: Path):
         """Start MCP server as subprocess."""
         logger.info(f"🚀 Starting MCP server: {narrator_path}")
         # Run from narrator-mcp directory so it uses its own pyproject.toml
@@ -906,13 +914,21 @@ Examples:
     if not args.command:
         parser.error("command is required")
 
-    # Load environment variables
-    env_file = script_dir / ".env"
+    # Load environment variables (look in client directory first, then project root)
+    client_dir = Path(__file__).parent.absolute()
+    project_root = client_dir.parent
+
+    # Try client directory first
+    env_file = client_dir / ".env"
+    if not env_file.exists():
+        # Fall back to project root
+        env_file = project_root / ".env"
+
     if env_file.exists():
         load_dotenv(env_file)
         logger.info(f"📄 Loaded environment from {env_file}")
     else:
-        logger.warning(f"⚠️ No .env file found at {env_file}")
+        logger.warning(f"⚠️ No .env file found at {client_dir / '.env'} or {project_root / '.env'}")
 
     # Get API configuration
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")

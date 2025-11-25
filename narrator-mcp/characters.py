@@ -145,7 +145,7 @@ Pause: Insert brief, excited pauses after particularly glowing compliments, as i
 
 def get_character(character_id: Optional[str] = None) -> Character:
     """Get a character by ID, or return the default character if not specified."""
-    if character_id is None:
+    if character_id is None or character_id == "":
         character_id = DEFAULT_CHARACTER_ID
     return CHARACTERS.get(character_id, CHARACTERS[DEFAULT_CHARACTER_ID])
 

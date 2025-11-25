@@ -15,16 +15,16 @@ else
     echo "✅ No processes found on port 8000"
 fi
 
-# Find server.py processes
-SERVER_PIDS=$(pgrep -f "server.py" 2>/dev/null)
+# Find narrator-mcp/server.py processes (more specific)
+SERVER_PIDS=$(pgrep -f "narrator-mcp.*server.py" 2>/dev/null)
 if [ -n "$SERVER_PIDS" ]; then
     echo ""
-    echo "📌 Found server.py processes:"
+    echo "📌 Found narrator-mcp/server.py processes:"
     for pid in $SERVER_PIDS; do
         ps -p "$pid" -o pid,command
     done
 else
-    echo "✅ No server.py processes found"
+    echo "✅ No narrator-mcp/server.py processes found"
 fi
 
 # Find narrator-mcp related processes

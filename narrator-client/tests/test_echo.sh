@@ -3,12 +3,17 @@
 
 set -e
 
-if [ ! -f .env ]; then
+# Get project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
     echo "❌ Missing .env file"
     echo "Run: cp .env.example .env (then add your API key)"
     exit 1
 fi
 
+cd "$PROJECT_ROOT"
 source .env
 if [ -z "$OPENAI_API_KEY" ]; then
     echo "❌ OPENAI_API_KEY not set in .env"
@@ -31,15 +36,20 @@ echo "Starting..."
 echo ""
 echo "----------------------------------------"
 
-uv run python bridge.py echo "Hello from vibe-narrator!"
+# Get project root (parent of narrator-client)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$PROJECT_ROOT"
+uv run python narrator-client/bridge.py echo "Hello from vibe-narrator!"
 
 echo "----------------------------------------"
 echo ""
 echo "✅ Test complete!"
 echo ""
 echo "Check logs for details:"
-BRIDGE_LOG=$(ls -t logs/bridge_*.log 2>/dev/null | head -1)
-NARRATOR_LOG=$(ls -t narrator-mcp/logs/narrator_*.log 2>/dev/null | head -1)
+BRIDGE_LOG=$(ls -t "$PROJECT_ROOT/narrator-client/logs/bridge_*.log" 2>/dev/null | head -1)
+NARRATOR_LOG=$(ls -t "$PROJECT_ROOT/narrator-mcp/logs/narrator_*.log" 2>/dev/null | head -1)
 
 if [ -n "$BRIDGE_LOG" ]; then
     echo "  Bridge: $BRIDGE_LOG"

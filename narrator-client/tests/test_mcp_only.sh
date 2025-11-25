@@ -24,7 +24,11 @@ echo ""
 echo "Sending initialize and config messages to MCP server..."
 echo ""
 
-cd narrator-mcp
+# Get project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$PROJECT_ROOT/narrator-mcp"
 
 # Create a test input with initialize, initialized notification, and config
 cat <<EOF | uv run python server.py 2>&1 | tee /tmp/mcp_test.log

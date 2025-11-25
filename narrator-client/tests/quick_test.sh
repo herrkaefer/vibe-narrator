@@ -3,11 +3,16 @@
 
 set -e
 
-if [ ! -f .env ]; then
+# Get project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
     echo "❌ Missing .env file"
     exit 1
 fi
 
+cd "$PROJECT_ROOT"
 source .env
 if [ -z "$OPENAI_API_KEY" ]; then
     echo "❌ OPENAI_API_KEY not set"
@@ -19,11 +24,11 @@ echo "=============================================="
 echo ""
 
 # Run a simple test
-uv run python bridge.py echo "Quick test"
+uv run python narrator-client/bridge.py echo "Quick test"
 
 echo ""
 echo "Checking for audio chunks in latest log..."
-LATEST_LOG=$(ls -t logs/bridge_*.log 2>/dev/null | head -1)
+LATEST_LOG=$(ls -t narrator-client/logs/bridge_*.log 2>/dev/null | head -1)
 
 if [ -n "$LATEST_LOG" ]; then
     AUDIO_COUNT=$(grep -c "🔊 Audio chunk" "$LATEST_LOG" || echo "0")
