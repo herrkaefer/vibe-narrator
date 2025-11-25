@@ -17,7 +17,7 @@ from events import send_audio_event, send_text_event
 from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
 from session import Session
 from tts import stream_tts
-from characters import get_default_character
+from characters import get_character, get_default_character
 
 import openai
 
@@ -101,9 +101,10 @@ async def handle_config(msg: Dict[str, Any]) -> None:
     session.model = params.get("model", session.model)
     session.voice = params.get("voice", session.voice)
     session.mode = params.get("mode", session.mode)
+    session.character = params.get("character", session.character)
 
     # Log configuration
-    logging.info(f"✅ Session configured (model={session.model}, voice={session.voice}, mode={session.mode})")
+    logging.info(f"✅ Session configured (model={session.model}, voice={session.voice}, mode={session.mode}, character={session.character or 'default'})")
 
     await send({"jsonrpc": "2.0", "result": "ok", "id": msg.get("id")})
 
@@ -136,8 +137,8 @@ async def handle_narrate(msg: Dict[str, Any]) -> None:
     logging.info("🎧 Narrate request received")
     narrate_logger.info("📝 Narrate text:\n%s", prompt)
 
-    # Get current character (hardcoded default for now)
-    character = get_default_character()
+    # Get current character from session, or use default
+    character = get_character(session.character)
     logging.info(f"🎭 Using character: {character.name}")
     narrate_logger.info(f"🎭 Character: {character.name} (id: {character.id})")
 

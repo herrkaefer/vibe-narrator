@@ -143,7 +143,7 @@ logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
-    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None, mode=None):
+    def __init__(self, server_cmd=None, api_key=None, model=None, voice=None, mode=None, character=None):
         # Get the directory where this script is located
         script_dir = Path(__file__).parent.absolute()
         narrator_path = script_dir / "narrator-mcp" / "server.py"
@@ -153,6 +153,7 @@ class MCPBridge:
         self.model = model
         self.voice = voice
         self.mode = mode  # "chat" or "narration"
+        self.character = character  # character ID
         self.config_sent = False
 
         # Use default command if not provided. Prefer the packaged server if present.
@@ -248,6 +249,8 @@ class MCPBridge:
             config_params["voice"] = self.voice
         if self.mode:
             config_params["mode"] = self.mode
+        if self.character:
+            config_params["character"] = self.character
 
         self._send({
             "jsonrpc": "2.0",
@@ -256,7 +259,7 @@ class MCPBridge:
             "params": config_params
         })
 
-        config_info = f"model={self.model or 'default'}, voice={self.voice or 'default'}, mode={self.mode or 'chat'}"
+        config_info = f"model={self.model or 'default'}, voice={self.voice or 'default'}, mode={self.mode or 'chat'}, character={self.character or 'default'}"
         logger.info(f"🔑 Sent config to MCP Server ({config_info})")
 
         # Wait for config response
@@ -899,6 +902,7 @@ Examples:
     model = os.getenv("OPENAI_MODEL")
     voice = os.getenv("OPENAI_VOICE")
     mode = os.getenv("MODE")  # "chat" or "narration"
+    character = os.getenv("CHARACTER")  # character ID
 
     # Check if terminal debug logging is enabled
     debug_terminal = os.getenv("BRIDGE_DEBUG_TERMINAL", "").lower() in ("1", "true", "yes", "on")
@@ -912,7 +916,7 @@ Examples:
         sys.exit(1)
 
     logger.info("🧩 Starting MCP Bridge...")
-    bridge = MCPBridge(api_key=api_key, model=model, voice=voice, mode=mode)
+    bridge = MCPBridge(api_key=api_key, model=model, voice=voice, mode=mode, character=character)
     time.sleep(0.5)
 
     # Create a pseudo terminal pair

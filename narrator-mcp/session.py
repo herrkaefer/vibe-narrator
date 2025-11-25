@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from characters import DEFAULT_CHARACTER_ID
+
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_VOICE = "alloy"
 DEFAULT_MODE = "chat"  # "chat" or "narration"
@@ -17,6 +19,7 @@ class Session:
         self.model: str = DEFAULT_MODEL
         self.voice: str = DEFAULT_VOICE
         self.mode: str = DEFAULT_MODE  # "chat" or "narration"
+        self.character: Optional[str] = None  # character ID, defaults to DEFAULT_CHARACTER_ID if None
 
 
 __all__ = ["Session", "DEFAULT_MODEL", "DEFAULT_VOICE", "DEFAULT_MODE"]
