@@ -763,142 +763,6 @@ class TextBuffer:
         return result
 
 
-class StatusBar:
-    """
-    Simple status bar displayed at the bottom of the terminal
-    Shows buffer status, pending requests, and statistics
-    """
-    def __init__(self):
-        self.rows, self.cols = self._get_terminal_size()
-        self.status_line = self.rows  # Use last line for status
-        self.enabled = sys.stdout.isatty()  # Only enable if stdout is a TTY
-        self.last_status_text = ""  # Cache last status text to avoid unnecessary updates
-
-    def _get_terminal_size(self):
-        """Get current terminal size"""
-        try:
-            fallback = shutil.get_terminal_size(fallback=(80, 24))
-            return fallback.lines, fallback.columns
-        except:
-            return 24, 80
-
-    def update(self, buffer_size=0, pending_requests=0, audio_chunks=0, text_tokens=0):
-        """Update status bar with current information"""
-        if not self.enabled:
-            return
-
-        # Update terminal size in case it changed
-        self.rows, self.cols = self._get_terminal_size()
-        self.status_line = self.rows  # Always use the last visible line
-
-        # Build status text with fixed-width fields to prevent flickering
-        # Format: Narrator: Buffer: 123456 | Pending: 999 | Audio: 123456 | Tokens: 123456
-        # Limit large numbers to prevent overflow and ensure fixed width
-        buffer_display = min(buffer_size, 999999)
-        pending_display = min(pending_requests, 999)
-        audio_display = min(audio_chunks, 999999)
-        tokens_display = min(text_tokens, 999999)
-
-        # Build with exact fixed-width formatting using format() for consistency
-        # Each field has exactly fixed width to prevent any flickering
-        status_text = "Narrator: Buffer: {:>6} | Pending: {:>3} | Audio: {:>6} | Tokens: {:>6}".format(
-            buffer_display,
-            pending_display,
-            audio_display,
-            tokens_display
-        )
-
-        # Expected length: "Narrator: Buffer: 123456 | Pending: 999 | Audio: 123456 | Tokens: 123456" = 72 chars
-        expected_length = 72
-
-        # Ensure exact length to prevent any flickering
-        if len(status_text) != expected_length:
-            if len(status_text) < expected_length:
-                status_text = status_text.ljust(expected_length)
-            else:
-                status_text = status_text[:expected_length]
-
-        # Truncate if too long for terminal (with some margin)
-        max_len = min(expected_length, self.cols - 2)  # Leave 2 chars margin
-        if len(status_text) > max_len:
-            status_text = status_text[:max_len]
-
-        # Only update if content has changed to reduce flickering
-        if status_text == self.last_status_text:
-            return
-
-        # Calculate position: bottom right corner
-        status_width = len(status_text)
-        start_col = max(1, self.cols - status_width + 1)  # Start column for right alignment
-
-        # Ensure start_col doesn't exceed terminal width
-        if start_col + status_width > self.cols:
-            start_col = max(1, self.cols - status_width + 1)
-            status_width = min(status_width, self.cols - start_col + 1)
-
-        # Save cursor position, move to bottom right, update, restore cursor
-        # Use bright colors: cyan background (46) + black text (30) + bold (1)
-        try:
-            sys.stdout.write('\x1b[s')  # Save cursor
-
-            # Clear potential old status bars in the last few lines
-            # This handles the case where terminal content has scrolled and old status bars are visible
-            # Only clear the status bar area (from start_col to end of line) to avoid affecting user content
-            clear_start_col = max(1, start_col - 20)  # Clear wider area to catch any old status bars
-            # Clear last 3 lines to catch status bars that might have scrolled up
-            for line_offset in range(3):
-                clear_line = self.rows - line_offset
-                if clear_line > 0:
-                    sys.stdout.write(f'\x1b[{clear_line};{clear_start_col}H')
-                    sys.stdout.write('\x1b[0m')  # Reset attributes
-                    sys.stdout.write('\x1b[K')  # Clear from clear_start_col to end of line (status bar area only)
-
-            # Move to the exact status bar position (always the last visible line: self.rows)
-            # self.rows is always the last visible line of the terminal, so status bar will always be at bottom
-            sys.stdout.write(f'\x1b[{self.status_line};{start_col}H')
-            # Write the status bar in one atomic operation with fixed formatting
-            # Bright cyan background (46) + bold black text (1;30) for high contrast
-            # IMPORTANT: Ensure we don't write beyond terminal width to prevent wrapping
-            full_line = '\x1b[46;1;30m' + status_text + '\x1b[0m'
-            sys.stdout.write(full_line)
-            sys.stdout.write('\x1b[0m')  # Reset color after status bar to prevent color bleed
-            sys.stdout.flush()  # Flush immediately after writing
-            sys.stdout.write('\x1b[u')  # Restore cursor after flush
-            sys.stdout.flush()
-
-            # Update cache
-            self.last_status_text = status_text
-            self._last_start_col = start_col
-        except (OSError, IOError):
-            # Terminal might not support these codes, silently fail
-            pass
-
-    def clear(self):
-        """Clear the status bar"""
-        if not self.enabled:
-            return
-        try:
-            # Update terminal size
-            self.rows, self.cols = self._get_terminal_size()
-            self.status_line = self.rows
-
-            # Calculate position: bottom right corner (same as update)
-            if self.last_status_text:
-                status_width = len(self.last_status_text)
-                start_col = max(1, self.cols - status_width + 1)
-            else:
-                # Default width if no previous status
-                start_col = max(1, self.cols - 72 + 1)
-
-            sys.stdout.write('\x1b[s')
-            sys.stdout.write(f'\x1b[{self.status_line};{start_col}H')
-            sys.stdout.write('\x1b[K')  # Clear from cursor to end of line
-            sys.stdout.write('\x1b[u')
-            sys.stdout.flush()
-        except (OSError, IOError):
-            pass
-
-
 if __name__ == "__main__":
     import pty
     import select
@@ -1046,25 +910,10 @@ Examples:
         # This helps reduce lag when agent output is complete
         text_buffer = TextBuffer(min_window_seconds=3.5, pause_threshold=5.0)
 
-        # Initialize status bar
-        status_bar = StatusBar()
-        last_status_update = 0
-        status_update_interval = 0.5  # Update status bar every 0.5 seconds
-
         # Bidirectional communication loop
         try:
             while True:
                 current_time = time.time()
-
-                # Update status bar periodically
-                if current_time - last_status_update >= status_update_interval:
-                    status_bar.update(
-                        buffer_size=len(text_buffer.buffer),
-                        pending_requests=len(bridge.pending_requests),
-                        audio_chunks=bridge.audio_chunks_received,
-                        text_tokens=bridge.text_tokens_received
-                    )
-                    last_status_update = current_time
 
                 # Check if buffer should be flushed (even if there's no new data)
                 if text_buffer.should_flush(current_time):
@@ -1073,14 +922,6 @@ Examples:
                         clean = clean_text(buffered_text)
                         if clean:
                             bridge.send_chunk(clean)
-                            # Update status bar after sending
-                            status_bar.update(
-                                buffer_size=len(text_buffer.buffer),
-                                pending_requests=len(bridge.pending_requests),
-                                audio_chunks=bridge.audio_chunks_received,
-                                text_tokens=bridge.text_tokens_received
-                            )
-                            last_status_update = current_time
 
                 # Check which file descriptors have data to read
                 fds_to_read = [master_fd]
@@ -1225,9 +1066,6 @@ Examples:
         except KeyboardInterrupt:
             logger.info("⚠️ Interrupted by user")
         finally:
-            # Clear status bar before restoring terminal
-            if 'status_bar' in locals():
-                status_bar.clear()
             restore_terminal()
 
             # Process final remaining buffer
