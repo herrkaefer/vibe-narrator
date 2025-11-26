@@ -158,10 +158,11 @@ logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
-    """MCP client bridge using FastMCP with streamable-http transport."""
+    """MCP client bridge using FastMCP with streamable-http or stdio transport."""
 
     def __init__(self, api_key=None, model=None, voice=None, mode=None,
-                 character=None, base_url=None, default_headers=None, tts_api_key=None):
+                 character=None, base_url=None, default_headers=None, tts_api_key=None,
+                 use_stdio=False):
         self.api_key = api_key
         self.model = model
         self.voice = voice
@@ -170,6 +171,7 @@ class MCPBridge:
         self.base_url = base_url
         self.default_headers = default_headers
         self.tts_api_key = tts_api_key
+        self.use_stdio = use_stdio  # New parameter
 
         # Will be initialized in async context
         self.client: Client | None = None
@@ -198,24 +200,42 @@ class MCPBridge:
         logger.info(f"📁 Project root: {project_root}")
         logger.info(f"📄 Narrator path: {narrator_path}")
 
-        # Check if server is already running
-        server_running = await self._check_server_running()
+        narrator_dir = narrator_path.parent
 
-        if not server_running:
-            logger.info("🔧 MCP server not running, starting it...")
-            await self._start_server(project_root, narrator_path)
-        else:
-            logger.info("✅ MCP server already running")
-
-        # Create client with HTTP transport
-        config = {
-            "mcpServers": {
-                "narrator-mcp": {
-                    "url": self.server_url,
-                    "transport": "streamable-http"
+        if self.use_stdio:
+            # Local stdio mode
+            logger.info("🔌 Using stdio transport (local mode)")
+            config = {
+                "mcpServers": {
+                    "narrator-mcp": {
+                        "command": "uv",
+                        "args": ["run", "python", "server.py"],
+                        "cwd": str(narrator_dir),
+                        "env": {"MCP_TRANSPORT": "stdio"}
+                    }
                 }
             }
-        }
+            # In stdio mode, no need to start HTTP server, FastMCP client will manage subprocess automatically
+        else:
+            # Remote streamable-http mode
+            logger.info("🌐 Using streamable-http transport (remote mode)")
+            # Check if server is already running
+            server_running = await self._check_server_running()
+
+            if not server_running:
+                logger.info("🔧 MCP server not running, starting it...")
+                await self._start_server(project_root, narrator_path)
+            else:
+                logger.info("✅ MCP server already running")
+
+            config = {
+                "mcpServers": {
+                    "narrator-mcp": {
+                        "url": self.server_url,
+                        "transport": "streamable-http"
+                    }
+                }
+            }
 
         logger.info("🤝 Connecting to MCP server...")
         self.client = Client(config)
@@ -323,8 +343,8 @@ class MCPBridge:
             logger.info("🔌 Closing MCP client...")
             await self.client.__aexit__(*args)
 
-        # Terminate server process if we started it
-        if self.server_process:
+        # Terminate server process if we started it (only for HTTP mode)
+        if not self.use_stdio and self.server_process:
             logger.info("🛑 Terminating MCP server process...")
             try:
                 self.server_process.terminate()
@@ -896,7 +916,8 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
 
 async def async_main(cmd: list[str], api_key: str, model: str | None, voice: str | None,
                      mode: str | None, character: str | None, base_url: str | None,
-                     default_headers: dict | None, tts_api_key: str | None):
+                     default_headers: dict | None, tts_api_key: str | None,
+                     use_stdio: bool = False):
     """Async main function."""
     async with MCPBridge(
         api_key=api_key,
@@ -906,7 +927,8 @@ async def async_main(cmd: list[str], api_key: str, model: str | None, voice: str
         character=character,
         base_url=base_url,
         default_headers=default_headers,
-        tts_api_key=tts_api_key
+        tts_api_key=tts_api_key,
+        use_stdio=use_stdio
     ) as bridge:
         await run_pty_with_narration(bridge, cmd)
 
@@ -930,10 +952,13 @@ Examples:
   python bridge.py claude
   python bridge.py python -i
   python bridge.py bash
+  python bridge.py --use-stdio claude  # Use stdio transport for local mode
         '''
     )
     parser.add_argument('command', nargs=argparse.REMAINDER,
                        help='Command to run in PTY (e.g., claude, python -i, bash)')
+    parser.add_argument('--use-stdio', action='store_true',
+                       help='Use stdio transport for local MCP server (default: streamable-http for remote)')
     args = parser.parse_args()
 
     if not args.command:
@@ -1018,7 +1043,8 @@ Examples:
         character=character,
         base_url=base_url,
         default_headers=default_headers,
-        tts_api_key=tts_api_key
+        tts_api_key=tts_api_key,
+        use_stdio=args.use_stdio
     ))
 
     logger.info("✅ Bridge session complete")

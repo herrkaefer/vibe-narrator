@@ -28,16 +28,37 @@ log_dir = script_dir / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 narrate_log_file = log_dir / f"narrator_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
+# Check if running in stdio mode
+import os
+is_stdio_mode = os.getenv("MCP_TRANSPORT") == "stdio"
+
+# Configure log handlers
+handlers = []
+# In stdio mode, don't output to stderr (to avoid interfering with terminal output)
+# In streamable-http mode, output to stderr for debugging
+if not is_stdio_mode:
+    handlers.append(logging.StreamHandler(sys.stderr))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stderr)],
+    handlers=handlers,
 )
 
 file_handler = logging.FileHandler(narrate_log_file, encoding="utf-8")
 file_handler.setLevel(logging.INFO)
 file_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 file_handler.setFormatter(file_formatter)
+# Add file handler to root logger
+logging.getLogger().addHandler(file_handler)
+
+# In stdio mode, suppress FastMCP and OpenAI log output to stderr
+if is_stdio_mode:
+    # Suppress FastMCP logs
+    logging.getLogger("fastmcp").setLevel(logging.WARNING)
+    # Suppress OpenAI HTTP request logs
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 narrate_logger = logging.getLogger("narrate")
 narrate_logger.setLevel(logging.INFO)
@@ -367,7 +388,16 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", port=8000, path="/mcp")
+    import os
+    # Determine transport mode via environment variable, default to streamable-http (remote mode)
+    transport = os.getenv("MCP_TRANSPORT", "streamable-http")
+
+    if transport == "stdio":
+        # Local stdio mode
+        mcp.run(transport="stdio")
+    else:
+        # Remote streamable-http mode
+        mcp.run(transport="streamable-http", port=8000, path="/mcp")
 
 
 __all__ = ["mcp"]
