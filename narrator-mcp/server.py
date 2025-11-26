@@ -93,6 +93,7 @@ async def configure(
     character: str | None = None,
     base_url: str | None = None,
     default_headers: dict | None = None,
+    tts_api_key: str | None = None,
 ) -> str:
     """Configure API credentials and narration settings for the session."""
     ctx = get_context()
@@ -109,6 +110,8 @@ async def configure(
         ctx.session.base_url = base_url
     if default_headers is not None:
         ctx.session.default_headers = default_headers
+    if tts_api_key is not None:
+        ctx.session.tts_api_key = tts_api_key
 
     # Log all configuration (except api_key for security)
     config_parts = [
@@ -235,7 +238,39 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
             await tts_queue.put(None)  # Signal completion
 
         except (openai.RateLimitError, openai.APIError) as e:
-            error_msg = f"OpenAI API error: {str(e)}"
+            # Build detailed error information
+            error_details = [f"OpenAI API error: {str(e)}"]
+
+            # Add error type
+            error_details.append(f"Error type: {type(e).__name__}")
+
+            # Add status code (if available)
+            if hasattr(e, 'status_code'):
+                error_details.append(f"Status code: {e.status_code}")
+
+            # Add error code (if available)
+            if hasattr(e, 'code'):
+                error_details.append(f"Error code: {e.code}")
+
+            # Add response body (if available)
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    if hasattr(e.response, 'text'):
+                        error_details.append(f"Response: {e.response.text}")
+                    elif hasattr(e.response, 'json'):
+                        error_details.append(f"Response: {e.response.json()}")
+                except Exception:
+                    pass
+
+            # Add request information (if available)
+            if hasattr(e, 'request') and e.request is not None:
+                try:
+                    if hasattr(e.request, 'url'):
+                        error_details.append(f"Request URL: {e.request.url}")
+                except Exception:
+                    pass
+
+            error_msg = " | ".join(error_details)
             narrate_logger.error(f"❌ LLM error: {error_msg}")
             logging.error(f"❌ LLM error: {error_msg}")
             await tts_queue.put(None)
@@ -264,16 +299,15 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 audio_buffer = bytearray()
                 audio_fragment_count = 0
 
+                # TTS always uses OpenAI API with dedicated tts_api_key
+                # Don't pass base_url and default_headers (use OpenAI default endpoint)
                 tts_params = {
                     "text_block": block,
-                    "api_key": ctx.session.api_key,
+                    "api_key": ctx.session.tts_api_key or ctx.session.api_key,
                     "voice": ctx.session.voice,
                     "instructions": character.tts_instructions,
                 }
-                if ctx.session.base_url:
-                    tts_params["base_url"] = ctx.session.base_url
-                if ctx.session.default_headers:
-                    tts_params["default_headers"] = ctx.session.default_headers
+                # TTS doesn't use OpenRouter's base_url and headers, always uses OpenAI default endpoint
 
                 async for audio_chunk in stream_tts(**tts_params):
                     audio_fragment_count += 1
@@ -288,7 +322,31 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                     audio_chunks.append(bytes(audio_buffer))
 
         except (openai.RateLimitError, openai.APIError) as e:
-            error_msg = f"OpenAI TTS API error: {str(e)}"
+            # Build detailed error information
+            error_details = [f"OpenAI TTS API error: {str(e)}"]
+
+            # Add error type
+            error_details.append(f"Error type: {type(e).__name__}")
+
+            # Add status code (if available)
+            if hasattr(e, 'status_code'):
+                error_details.append(f"Status code: {e.status_code}")
+
+            # Add error code (if available)
+            if hasattr(e, 'code'):
+                error_details.append(f"Error code: {e.code}")
+
+            # Add response body (if available)
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    if hasattr(e.response, 'text'):
+                        error_details.append(f"Response: {e.response.text}")
+                    elif hasattr(e.response, 'json'):
+                        error_details.append(f"Response: {e.response.json()}")
+                except Exception:
+                    pass
+
+            error_msg = " | ".join(error_details)
             narrate_logger.error(f"❌ TTS error: {error_msg}")
             logging.error(f"❌ TTS error: {error_msg}")
             raise
