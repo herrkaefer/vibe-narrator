@@ -910,6 +910,15 @@ async def async_main(cmd: list[str], api_key: str, model: str | None, voice: str
 if __name__ == "__main__":
     import argparse
 
+    # Switch to original working directory if set
+    # This ensures commands run in the directory where user invoked the script
+    original_cwd = os.environ.get('ORIGINAL_CWD')
+    if original_cwd and os.path.isdir(original_cwd):
+        os.chdir(original_cwd)
+        logger.info(f"📁 Changed to original working directory: {original_cwd}")
+    else:
+        logger.info(f"📁 Using current working directory: {os.getcwd()}")
+
     parser = argparse.ArgumentParser(
         description='MCP Bridge - Run command in PTY and forward output to MCP server',
         epilog='''
