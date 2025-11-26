@@ -378,9 +378,9 @@ class MCPBridge:
 
     async def _send_config(self):
         """Configure server via tool call."""
-        config_args = {"api_key": self.api_key}
+        config_args = {"llm_api_key": self.api_key}
         if self.model:
-            config_args["model"] = self.model
+            config_args["llm_model"] = self.model
         if self.voice:
             config_args["voice"] = self.voice
         if self.mode:

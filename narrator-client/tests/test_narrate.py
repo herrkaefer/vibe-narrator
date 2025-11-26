@@ -81,8 +81,8 @@ try:
         "id": 1,
         "method": "config",
         "params": {
-            "api_key": api_key,
-            "model": "gpt-4o-mini",
+            "llm_api_key": api_key,
+            "llm_model": "gpt-4o-mini",
             "voice": "alloy"
         }
     })

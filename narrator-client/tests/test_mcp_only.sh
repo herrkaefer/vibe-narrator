@@ -34,7 +34,7 @@ cd "$PROJECT_ROOT/narrator-mcp"
 cat <<EOF | uv run python server.py 2>&1 | tee /tmp/mcp_test.log
 {"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}
 {"jsonrpc":"2.0","method":"notifications/initialized"}
-{"jsonrpc":"2.0","id":1,"method":"config","params":{"api_key":"$OPENAI_API_KEY","model":"gpt-4o-mini","voice":"alloy"}}
+{"jsonrpc":"2.0","id":1,"method":"config","params":{"llm_api_key":"$OPENAI_API_KEY","llm_model":"gpt-4o-mini","voice":"alloy"}}
 EOF
 
 echo ""

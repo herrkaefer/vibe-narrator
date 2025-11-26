@@ -107,8 +107,8 @@ def get_context() -> AppContext:
 
 @mcp.tool()
 async def configure(
-    api_key: str,
-    model: str | None = None,
+    llm_api_key: str,
+    llm_model: str | None = None,
     voice: str | None = None,
     mode: str | None = None,
     character: str | None = None,
@@ -118,9 +118,9 @@ async def configure(
 ) -> str:
     """Configure API credentials and narration settings for the session."""
     ctx = get_context()
-    ctx.session.api_key = api_key
-    if model is not None:
-        ctx.session.model = model
+    ctx.session.llm_api_key = llm_api_key
+    if llm_model is not None:
+        ctx.session.llm_model = llm_model
     if voice is not None:
         ctx.session.voice = voice
     if mode is not None:
@@ -133,10 +133,13 @@ async def configure(
         ctx.session.default_headers = default_headers
     if tts_api_key is not None:
         ctx.session.tts_api_key = tts_api_key
+    else:
+        # If tts_api_key is None, set it to llm_api_key
+        ctx.session.tts_api_key = llm_api_key
 
-    # Log all configuration (except api_key for security)
+    # Log all configuration (except llm_api_key for security)
     config_parts = [
-        f"model={ctx.session.model}",
+        f"model={ctx.session.llm_model}",
         f"voice={ctx.session.voice}",
         f"mode={ctx.session.mode}",
         f"character={ctx.session.character or 'default'}",
@@ -162,7 +165,7 @@ async def narrate(prompt: str) -> str:
 
     if not prompt:
         raise ValueError("Missing prompt parameter")
-    if not ctx.session.api_key:
+    if not ctx.session.llm_api_key:
         raise ValueError("Not configured. Call 'configure' tool first")
     if not ctx.session.tts_api_key:
         raise ValueError("Not configured. Call 'configure' tool first")
@@ -201,11 +204,11 @@ async def get_config_status() -> str:
 
     # Build status dictionary
     status = {
-        "has_api_key": session.api_key is not None,
+        "has_api_key": session.llm_api_key is not None,
         "has_tts_api_key": session.tts_api_key is not None,
-        "is_configured": session.api_key is not None and session.tts_api_key is not None,
+        "is_configured": session.llm_api_key is not None and session.tts_api_key is not None,
         "session": {
-            "model": session.model,
+            "model": session.llm_model,
             "voice": session.voice,
             "mode": session.mode,
             "character": session.character or "default",
@@ -241,8 +244,8 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
             # Prepare stream parameters
             stream_params: dict[str, Any] = {
                 "prompt": prompt,
-                "api_key": ctx.session.api_key,
-                "model": ctx.session.model,
+                "api_key": ctx.session.llm_api_key,
+                "model": ctx.session.llm_model,
                 "character": character
             }
 
@@ -355,7 +358,7 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 # Don't pass base_url and default_headers (use OpenAI default endpoint)
                 tts_params = {
                     "text_block": block,
-                    "api_key": ctx.session.tts_api_key or ctx.session.api_key,
+                    "api_key": ctx.session.tts_api_key or ctx.session.llm_api_key,
                     "voice": ctx.session.voice,
                     "instructions": character.tts_instructions,
                 }

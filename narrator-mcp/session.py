@@ -15,8 +15,8 @@ class Session:
     """Represents the currently active MCP session (process-local)."""
 
     def __init__(self) -> None:
-        self.api_key: Optional[str] = None
-        self.model: str = DEFAULT_MODEL
+        self.llm_api_key: Optional[str] = None
+        self.llm_model: str = DEFAULT_MODEL
         self.voice: str = DEFAULT_VOICE
         self.mode: str = DEFAULT_MODE  # "chat" or "narration"
         self.character: Optional[str] = None  # character ID, defaults to DEFAULT_CHARACTER_ID if None
