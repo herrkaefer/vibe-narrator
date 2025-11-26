@@ -17,7 +17,7 @@ import openai
 from fastmcp import FastMCP
 
 from chunker import Chunker
-from characters import get_character, list_characters
+from characters import get_character, get_characters_list
 from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
 from session import Session
 from tts import stream_tts
@@ -164,6 +164,8 @@ async def narrate(prompt: str) -> str:
         raise ValueError("Missing prompt parameter")
     if not ctx.session.api_key:
         raise ValueError("Not configured. Call 'configure' tool first")
+    if not ctx.session.tts_api_key:
+        raise ValueError("Not configured. Call 'configure' tool first")
 
     logging.info("🎧 Narrate request received")
     narrate_logger.info(f"📝 Narrate text:\n{prompt}")
@@ -186,9 +188,38 @@ async def narrate(prompt: str) -> str:
 @mcp.tool()
 async def list_characters() -> str:
     """List available character personalities."""
-    chars = list_characters()
+    chars = get_characters_list()
     logging.info(f"📋 Listing {len(chars)} available characters")
     return json.dumps({"characters": chars})
+
+
+@mcp.tool()
+async def get_config_status() -> str:
+    """Get the current configuration status for debugging."""
+    ctx = get_context()
+    session = ctx.session
+
+    # Build status dictionary
+    status = {
+        "has_api_key": session.api_key is not None,
+        "has_tts_api_key": session.tts_api_key is not None,
+        "is_configured": session.api_key is not None and session.tts_api_key is not None,
+        "session": {
+            "model": session.model,
+            "voice": session.voice,
+            "mode": session.mode,
+            "character": session.character or "default",
+            "base_url": session.base_url,
+            "has_default_headers": session.default_headers is not None,
+        }
+    }
+
+    # Add default_headers keys if present (without values for security)
+    if session.default_headers:
+        status["session"]["default_headers_keys"] = list(session.default_headers.keys())
+
+    logging.info("🔍 Config status requested")
+    return json.dumps(status)
 
 
 async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:

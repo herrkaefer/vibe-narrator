@@ -7,8 +7,8 @@ from typing import Optional
 from characters import DEFAULT_CHARACTER_ID
 
 DEFAULT_MODEL = "gpt-4o-mini"
-DEFAULT_VOICE = "alloy"
-DEFAULT_MODE = "chat"  # "chat" or "narration"
+DEFAULT_VOICE = "nova"
+DEFAULT_MODE = "narration"  # "chat" or "narration"
 
 
 class Session:

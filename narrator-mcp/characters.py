@@ -183,7 +183,7 @@ def get_default_character() -> Character:
     return CHARACTERS[DEFAULT_CHARACTER_ID]
 
 
-def list_characters() -> list[dict[str, str]]:
+def get_characters_list() -> list[dict[str, str]]:
     """Get a list of all available characters with their IDs and names."""
     return [
         {"id": char.id, "name": char.name}
@@ -197,6 +197,6 @@ __all__ = [
     "DEFAULT_CHARACTER_ID",
     "get_character",
     "get_default_character",
-    "list_characters",
+    "get_characters_list",
 ]
 
