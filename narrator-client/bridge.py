@@ -421,7 +421,7 @@ class MCPBridge:
 
             generated_text = response_data.get("text", "")
             audio_base64 = response_data.get("audio", "")
-            audio_format = response_data.get("format", "aac")
+            audio_format = response_data.get("format", "mp3")
 
             # Decode and play audio (only if audio data exists and is not empty)
             audio_bytes = b''

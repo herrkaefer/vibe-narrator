@@ -8,7 +8,7 @@ import openai
 
 DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"
 DEFAULT_TTS_VOICE = "alloy"
-TTS_FORMAT = "aac"
+TTS_FORMAT = "mp3"
 
 
 async def stream_tts(

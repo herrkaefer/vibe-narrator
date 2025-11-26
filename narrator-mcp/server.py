@@ -154,7 +154,7 @@ async def narrate(prompt: str) -> str:
     result = {
         "text": text,
         "audio": base64.b64encode(audio_bytes).decode('utf-8'),
-        "format": "aac"
+        "format": "mp3"
     }
 
     logging.info(f"✅ Narration complete: {len(text)} chars, {len(audio_bytes)} bytes audio")
@@ -173,7 +173,7 @@ async def list_characters() -> str:
 async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
     """
     Generate narrated speech from text prompt.
-    Returns (generated_text, audio_aac_bytes)
+    Returns (generated_text, audio_mp3_bytes)
     """
     character = get_character(ctx.session.character)
 
@@ -316,7 +316,7 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
 
                 if audio_buffer:
                     narrate_logger.info(
-                        f"   ✅ Complete AAC #{tts_chunk_count}: {len(audio_buffer)} bytes "
+                        f"   ✅ Complete MP3 #{tts_chunk_count}: {len(audio_buffer)} bytes "
                         f"(from {audio_fragment_count} fragments)"
                     )
                     audio_chunks.append(bytes(audio_buffer))

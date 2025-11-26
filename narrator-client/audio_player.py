@@ -1,4 +1,4 @@
-"""Cross-platform streaming audio player for AAC data."""
+"""Cross-platform streaming audio player for MP3 data."""
 
 import io
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class AudioPlayer:
     """
-    Streaming audio player that can play AAC chunks as they arrive.
+    Streaming audio player that can play MP3 chunks as they arrive.
 
     Supports:
     - macOS (via PyAudio + pydub)
@@ -60,8 +60,8 @@ class AudioPlayer:
         self.playback_thread.start()
         logger.info("🎵 Audio playback started")
 
-    def add_chunk(self, aac_data: bytes):
-        """Add an AAC chunk to the playback queue."""
+    def add_chunk(self, mp3_data: bytes):
+        """Add an MP3 chunk to the playback queue."""
         if not self.pyaudio_available:
             return
 
@@ -70,12 +70,12 @@ class AudioPlayer:
             return
 
         # Skip empty audio data
-        if not aac_data or len(aac_data) == 0:
+        if not mp3_data or len(mp3_data) == 0:
             logger.debug("⏭️ Skipping empty audio chunk")
             return
 
-        self.audio_queue.put(aac_data)
-        logger.debug(f"Added audio chunk to queue ({len(aac_data)} bytes)")
+        self.audio_queue.put(mp3_data)
+        logger.debug(f"Added audio chunk to queue ({len(mp3_data)} bytes)")
 
     def _playback_worker(self):
         """Worker thread that plays audio chunks."""
@@ -99,14 +99,14 @@ class AudioPlayer:
             while self.is_playing:
                 try:
                     # Get chunk from queue with timeout
-                    aac_data = self.audio_queue.get(timeout=0.5)
+                    mp3_data = self.audio_queue.get(timeout=0.5)
 
-                    if aac_data is None:  # Sentinel for stop
+                    if mp3_data is None:  # Sentinel for stop
                         break
 
-                    # Convert AAC bytes to AudioSegment
+                    # Convert MP3 bytes to AudioSegment
                     try:
-                        audio = AudioSegment.from_file(io.BytesIO(aac_data), format="aac")
+                        audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
                         logger.debug(f"Playing audio chunk: {len(audio)}ms, {audio.frame_rate}Hz")
 
                         # Check if we need to recreate the stream (format changed)
