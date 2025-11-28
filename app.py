@@ -5,7 +5,8 @@ def greet(name):
 
 # Create interface with logo
 with gr.Blocks(title="Vibe Narrator") as demo:
-    gr.Image("logo.png", show_label=False, container=False, height=120)
+    # Use HTML to display logo (same way as in README.md, works reliably in Space)
+    gr.HTML('<div style="text-align: center;"><img src="logo.png" alt="logo" style="max-height: 120px;"/></div>')
     gr.Interface(fn=greet, inputs="text", outputs="text")
 
 demo.launch()
