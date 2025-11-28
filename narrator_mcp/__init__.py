@@ -1,0 +1,2 @@
+"""Narrator MCP server package."""
+

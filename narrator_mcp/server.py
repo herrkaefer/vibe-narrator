@@ -16,11 +16,20 @@ from typing import Any
 import openai
 from fastmcp import FastMCP
 
-from .chunker import Chunker
-from .characters import get_character, get_characters_list
-from .llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
-from .session import Session
-from .tts import stream_tts, detect_tts_provider
+# Support both relative imports (when imported as package) and absolute imports (when run directly)
+try:
+    from .chunker import Chunker
+    from .characters import get_character, get_characters_list
+    from .llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
+    from .session import Session
+    from .tts import stream_tts, detect_tts_provider
+except ImportError:
+    # Fallback to absolute imports when running directly (e.g., via bridge)
+    from chunker import Chunker
+    from characters import get_character, get_characters_list
+    from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
+    from session import Session
+    from tts import stream_tts, detect_tts_provider
 
 # Setup logging
 script_dir = Path(__file__).parent.absolute()

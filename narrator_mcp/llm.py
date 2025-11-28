@@ -6,7 +6,12 @@ from typing import AsyncIterator, Optional
 
 import openai
 
-from .characters import Character, get_default_character
+# Support both relative imports (when imported as package) and absolute imports (when run directly)
+try:
+    from .characters import Character, get_default_character
+except ImportError:
+    # Fallback to absolute imports when running directly
+    from characters import Character, get_default_character
 
 DEFAULT_MODEL = "gpt-4o-mini"
 

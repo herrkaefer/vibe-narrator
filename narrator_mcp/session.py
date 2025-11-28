@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .characters import DEFAULT_CHARACTER_ID
+# Support both relative imports (when imported as package) and absolute imports (when run directly)
+try:
+    from .characters import DEFAULT_CHARACTER_ID
+except ImportError:
+    # Fallback to absolute imports when running directly
+    from characters import DEFAULT_CHARACTER_ID
 
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_VOICE = "nova"
