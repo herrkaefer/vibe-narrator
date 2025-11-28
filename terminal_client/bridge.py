@@ -190,7 +190,7 @@ class MCPBridge:
         # Get project root (parent of narrator-client)
         client_dir = Path(__file__).parent.absolute()
         project_root = client_dir.parent
-        narrator_path = project_root / "narrator-mcp" / "server.py"
+        narrator_path = project_root / "hfspace" / "narrator_mcp" / "server.py"
 
         if not narrator_path.exists():
             raise FileNotFoundError(
