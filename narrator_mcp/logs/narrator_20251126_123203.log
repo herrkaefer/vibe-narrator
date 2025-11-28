@@ -1,6 +1,0 @@
-2025-11-26 12:32:03,621 [INFO] 🚀 Narrator MCP Server initialized
-2025-11-26 12:32:03,621 [INFO] 📝 Narrate logs: /Users/herrk/dev-local/vibe-narrator/narrator-mcp/logs/narrator_20251126_123203.log
-2025-11-26 12:32:03,715 [INFO] Processing request of type CallToolRequest
-2025-11-26 12:32:03,716 [INFO] 🔍 Config status requested
-2025-11-26 12:32:03,723 [INFO] Processing request of type ListToolsRequest
-2025-11-26 12:32:03,730 [INFO] 🛑 Narrator MCP Server shutting down

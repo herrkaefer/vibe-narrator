@@ -1,5 +1,0 @@
-2025-11-25 15:49:33,344 [INFO] 📝 Narrate text:
-test
-2025-11-25 15:49:33,344 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
-2025-11-25 15:49:35,276 [INFO] ✅ LLM streaming complete (1 tokens)
-2025-11-25 15:49:35,277 [INFO] ⏭️ Skipping empty final chunk: '""'
