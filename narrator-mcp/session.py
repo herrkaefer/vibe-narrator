@@ -22,7 +22,8 @@ class Session:
         self.character: Optional[str] = None  # character ID, defaults to DEFAULT_CHARACTER_ID if None
         self.base_url: Optional[str] = None  # Optional base URL for API (e.g., OpenRouter)
         self.default_headers: Optional[dict] = None  # Optional headers (e.g., for OpenRouter)
-        self.tts_api_key: Optional[str] = None  # TTS-specific API key (for OpenAI TTS)
+        self.tts_api_key: Optional[str] = None  # TTS-specific API key (for OpenAI or ElevenLabs TTS)
+        self.tts_provider: Optional[str] = None  # TTS provider: "openai" or "elevenlabs" (auto-detected if None)
 
 
 __all__ = ["Session", "DEFAULT_MODEL", "DEFAULT_VOICE", "DEFAULT_MODE"]

@@ -30,20 +30,21 @@ async def narrate_and_play(prompt: str):
     # Get API configuration
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     openai_api_key = os.getenv("OPENAI_API_KEY")
-    openai_tts_api_key = os.getenv("OPENAI_TTS_API_KEY")
+    tts_api_key = os.getenv("TTS_API_KEY")
+    tts_provider = os.getenv("TTS_PROVIDER")
 
     base_url = None
     default_headers = None
     api_key = None
-    tts_api_key = None
 
-    # TTS API key: prefer OPENAI_TTS_API_KEY, fallback to OPENAI_API_KEY
-    if openai_tts_api_key:
-        tts_api_key = openai_tts_api_key
+    # TTS API key: prefer TTS_API_KEY, fallback to OPENAI_API_KEY
+    if tts_api_key:
+        pass  # Use TTS_API_KEY
     elif openai_api_key:
         tts_api_key = openai_api_key
     else:
-        print("❌ TTS requires OpenAI API key", file=sys.stderr)
+        print("❌ TTS requires API key", file=sys.stderr)
+        print("Please set either TTS_API_KEY or OPENAI_API_KEY in .env file", file=sys.stderr)
         sys.exit(1)
 
     if openrouter_api_key:
@@ -64,7 +65,7 @@ async def narrate_and_play(prompt: str):
 
     # Model configuration
     model = os.getenv("LLM_MODEL")
-    voice = os.getenv("OPENAI_TTS_VOICE")
+    voice = os.getenv("TTS_VOICE")
     mode = os.getenv("MODE", "narration")
     character = os.getenv("CHARACTER")
 
@@ -79,6 +80,7 @@ async def narrate_and_play(prompt: str):
         base_url=base_url,
         default_headers=default_headers,
         tts_api_key=tts_api_key,
+        tts_provider=tts_provider,
         use_stdio=False
     ) as bridge:
         # Use bridge's send_chunk which handles audio playback

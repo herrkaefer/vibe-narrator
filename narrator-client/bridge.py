@@ -162,6 +162,7 @@ class MCPBridge:
 
     def __init__(self, api_key=None, model=None, voice=None, mode=None,
                  character=None, base_url=None, default_headers=None, tts_api_key=None,
+                 tts_provider=None,
                  use_stdio=False):
         self.api_key = api_key
         self.model = model
@@ -171,6 +172,7 @@ class MCPBridge:
         self.base_url = base_url
         self.default_headers = default_headers
         self.tts_api_key = tts_api_key
+        self.tts_provider = tts_provider
         self.use_stdio = use_stdio  # New parameter
 
         # Will be initialized in async context
@@ -393,11 +395,14 @@ class MCPBridge:
             config_args["default_headers"] = self.default_headers
         if self.tts_api_key:
             config_args["tts_api_key"] = self.tts_api_key
+        if self.tts_provider:
+            config_args["tts_provider"] = self.tts_provider
 
         provider_info = f"base_url={self.base_url}" if self.base_url else "provider=OpenAI"
         config_info = (
             f"model={self.model or 'default'}, voice={self.voice or 'default'}, "
-            f"mode={self.mode or 'chat'}, character={self.character or 'default'}, {provider_info}"
+            f"mode={self.mode or 'chat'}, character={self.character or 'default'}, "
+            f"{provider_info}, tts_provider={self.tts_provider or 'auto'}"
         )
 
         logger.info(f"🔑 Configuring server ({config_info})...")
@@ -917,6 +922,7 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
 async def async_main(cmd: list[str], api_key: str, model: str | None, voice: str | None,
                      mode: str | None, character: str | None, base_url: str | None,
                      default_headers: dict | None, tts_api_key: str | None,
+                     tts_provider: str | None,
                      use_stdio: bool = False):
     """Async main function."""
     async with MCPBridge(
@@ -928,6 +934,7 @@ async def async_main(cmd: list[str], api_key: str, model: str | None, voice: str
         base_url=base_url,
         default_headers=default_headers,
         tts_api_key=tts_api_key,
+        tts_provider=tts_provider,
         use_stdio=use_stdio
     ) as bridge:
         await run_pty_with_narration(bridge, cmd)
@@ -983,23 +990,21 @@ Examples:
     # Get API configuration
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     openai_api_key = os.getenv("OPENAI_API_KEY")
-    openai_tts_api_key = os.getenv("OPENAI_TTS_API_KEY")
+    tts_api_key = os.getenv("TTS_API_KEY")
 
     base_url = None
     default_headers = None
     api_key = None
-    tts_api_key = None
 
-    # TTS API key: prefer OPENAI_TTS_API_KEY, fallback to OPENAI_API_KEY
-    if openai_tts_api_key:
-        tts_api_key = openai_tts_api_key
-        logger.info("🔊 Using OPENAI_TTS_API_KEY for TTS")
+    # TTS API key: prefer TTS_API_KEY, fallback to OPENAI_API_KEY
+    if tts_api_key:
+        logger.info("🔊 Using TTS_API_KEY for TTS")
     elif openai_api_key:
         tts_api_key = openai_api_key
-        logger.info("🔊 Using OPENAI_API_KEY for TTS")
+        logger.info("🔊 Using OPENAI_API_KEY for TTS (fallback)")
     else:
-        logger.error("❌ TTS requires OpenAI API key")
-        logger.error("Please set either OPENAI_TTS_API_KEY or OPENAI_API_KEY in .env file")
+        logger.error("❌ TTS requires API key")
+        logger.error("Please set either TTS_API_KEY or OPENAI_API_KEY in .env file")
         sys.exit(1)
 
     if openrouter_api_key:
@@ -1027,9 +1032,12 @@ Examples:
 
     # Model configuration
     model = os.getenv("LLM_MODEL")
-    voice = os.getenv("OPENAI_TTS_VOICE")
+    voice = os.getenv("TTS_VOICE")
     mode = os.getenv("MODE")
     character = os.getenv("CHARACTER")
+    tts_provider = os.getenv("TTS_PROVIDER")
+    if tts_provider:
+        logger.info(f"🎛️ TTS provider set to {tts_provider}")
 
     logger.info("🧩 Starting MCP Bridge...")
 
@@ -1044,6 +1052,7 @@ Examples:
         base_url=base_url,
         default_headers=default_headers,
         tts_api_key=tts_api_key,
+        tts_provider=tts_provider,
         use_stdio=args.use_stdio
     ))
 

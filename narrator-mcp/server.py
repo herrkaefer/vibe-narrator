@@ -20,7 +20,7 @@ from chunker import Chunker
 from characters import get_character, get_characters_list
 from llm import stream_llm, CHAT_MODE_SYSTEM_PROMPT, NARRATION_MODE_SYSTEM_PROMPT
 from session import Session
-from tts import stream_tts
+from tts import stream_tts, detect_tts_provider
 
 # Setup logging
 script_dir = Path(__file__).parent.absolute()
@@ -115,6 +115,7 @@ async def configure(
     base_url: str | None = None,
     default_headers: dict | None = None,
     tts_api_key: str | None = None,
+    tts_provider: str | None = None,
 ) -> str:
     """Configure API credentials and narration settings for the session."""
     ctx = get_context()
@@ -137,6 +138,15 @@ async def configure(
         # If tts_api_key is None, set it to llm_api_key
         ctx.session.tts_api_key = llm_api_key
 
+    # Set TTS provider (auto-detect if not provided)
+    if tts_provider is not None:
+        ctx.session.tts_provider = tts_provider
+    elif ctx.session.tts_api_key:
+        # Auto-detect provider from API key format
+        ctx.session.tts_provider = detect_tts_provider(ctx.session.tts_api_key)
+    else:
+        ctx.session.tts_provider = None
+
     # Log all configuration (except llm_api_key for security)
     config_parts = [
         f"model={ctx.session.llm_model}",
@@ -147,11 +157,15 @@ async def configure(
     if ctx.session.base_url:
         config_parts.append(f"base_url={ctx.session.base_url}")
     else:
-        config_parts.append("provider=OpenAI")
+        config_parts.append("llm_provider=OpenAI")
     if ctx.session.default_headers:
         headers_str = ", ".join(f"{k}={v[:20]}..." if len(str(v)) > 20 else f"{k}={v}"
                                for k, v in ctx.session.default_headers.items())
         config_parts.append(f"default_headers=[{headers_str}]")
+
+    # Add TTS provider info
+    tts_provider_name = ctx.session.tts_provider or "auto-detect"
+    config_parts.append(f"tts_provider={tts_provider_name}")
 
     logging.info(f"✅ Session configured: {', '.join(config_parts)}")
 
@@ -214,6 +228,7 @@ async def get_config_status() -> str:
             "character": session.character or "default",
             "base_url": session.base_url,
             "has_default_headers": session.default_headers is not None,
+            "tts_provider": session.tts_provider or "auto-detect",
         }
     }
 
@@ -354,15 +369,16 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 audio_buffer = bytearray()
                 audio_fragment_count = 0
 
-                # TTS always uses OpenAI API with dedicated tts_api_key
-                # Don't pass base_url and default_headers (use OpenAI default endpoint)
+                # TTS supports both OpenAI and ElevenLabs
                 tts_params = {
                     "text_block": block,
                     "api_key": ctx.session.tts_api_key or ctx.session.llm_api_key,
                     "voice": ctx.session.voice,
                     "instructions": character.tts_instructions,
+                    "tts_provider": ctx.session.tts_provider,
                 }
-                # TTS doesn't use OpenRouter's base_url and headers, always uses OpenAI default endpoint
+                # For OpenAI, don't pass base_url and default_headers (use OpenAI default endpoint)
+                # For ElevenLabs, these are not used
 
                 async for audio_chunk in stream_tts(**tts_params):
                     audio_fragment_count += 1

@@ -92,7 +92,7 @@ uv run python bridge.py claude
 3. **Narrator MCP Server**:
    - 接收文本
    - 调用 OpenAI LLM 处理
-   - 调用 OpenAI TTS 生成语音
+   - 调用 TTS 服务 (OpenAI 或 ElevenLabs) 生成语音
    - 发送音频事件回 bridge
 4. **等待完成**: Bridge 等待所有音频生成完成后再退出(最多 30 秒)
 
@@ -108,9 +108,9 @@ OPENAI_API_KEY=sk-your-key-here
 
 # 可选 (默认值如下)
 LLM_MODEL=gpt-4o-mini
-OPENAI_TTS_VOICE=alloy
+TTS_VOICE=alloy
 
-# 可用的语音选项:
+# OpenAI 可用的语音选项:
 # alloy, echo, fable, onyx, nova, shimmer
 ```
 
@@ -130,7 +130,45 @@ OPENROUTER_TITLE=Vibe Narrator
 
 **注意**:
 - 如果同时设置了 `OPENROUTER_API_KEY` 和 `OPENAI_API_KEY`，优先使用 OpenRouter
-- OpenRouter 的 TTS 支持可能有限，建议继续使用 OpenAI 的 TTS (通过 `OPENAI_API_KEY` 和 `OPENAI_TTS_VOICE`)
+- OpenRouter 的 TTS 支持可能有限，建议使用独立的 TTS 服务
+
+### TTS 配置
+
+系统支持两种 TTS 提供商: **OpenAI** 和 **ElevenLabs**。请通过 `TTS_PROVIDER` 环境变量明确指定提供商；由于 OpenAI 与 ElevenLabs 的 API key 都可能以 `sk-` 开头，因此无法可靠地通过前缀自动判别。
+
+#### OpenAI TTS (默认)
+
+```bash
+# 使用 OpenAI TTS (默认)
+TTS_API_KEY=sk-your-openai-key-here  # 可选，默认使用 OPENAI_API_KEY
+TTS_VOICE=alloy  # OpenAI 语音: alloy, echo, fable, onyx, nova, shimmer
+```
+
+#### ElevenLabs TTS
+
+```bash
+# 使用 ElevenLabs TTS
+TTS_API_KEY=your-elevenlabs-api-key-here
+TTS_VOICE=21m00Tcm4TlvDq8ikWAM  # ElevenLabs 语音 ID (从 voice library 获取)
+TTS_PROVIDER=elevenlabs        # 必填，避免与 OpenAI key 混淆
+
+# ElevenLabs 模型选项 (默认: eleven_turbo_v2_5)
+# - eleven_turbo_v2_5: 平衡质量和速度 (~250-300ms 延迟)
+# - eleven_multilingual_v2: 最高质量，支持 29 种语言
+# - eleven_flash_v2_5: 超低延迟 (~75ms)
+# - eleven_v3: 最富表现力，支持 70+ 种语言
+```
+
+**ElevenLabs 特性**:
+- 支持多语言和自然的情感表达
+- 模型会自动从文本中解读情感上下文
+- 支持通过角色指令 (character instructions) 控制语音风格
+- 访问 [ElevenLabs Voice Library](https://elevenlabs.io/community) 选择语音
+
+**提示**:
+- 若未设置 `TTS_PROVIDER`，系统默认使用 OpenAI
+- 使用 ElevenLabs 时务必设置 `TTS_PROVIDER=elevenlabs`
+- 支持 `TTS_PROVIDER=openai` 或 `TTS_PROVIDER=elevenlabs`
 
 ### 自定义 API 端点
 
@@ -157,7 +195,7 @@ LLM_MODEL=your-model-name
 
 ## 故障排查
 
-### 问题: "OPENAI_API_KEY not found"
+### 问题: "TTS requires API key" 或 "OPENAI_API_KEY not found"
 
 ```bash
 # 确保 .env 文件存在
