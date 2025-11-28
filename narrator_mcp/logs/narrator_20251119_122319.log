@@ -1,0 +1,12 @@
+2025-11-19 12:23:19,654 [INFO] 📝 Narrate text:
+This is sentence one. This is sentence two. This is sentence three.
+2025-11-19 12:23:20,627 [INFO] 📦 Chunk ready for TTS (22 chars): 'This is sentence four.'
+2025-11-19 12:23:20,628 [INFO] 🎤 Sending to TTS #1 (22 chars): 'This is sentence four.'
+2025-11-19 12:23:20,654 [INFO] 📦 Chunk ready for TTS (23 chars): ' This is sentence five.'
+2025-11-19 12:23:20,687 [INFO] 📦 Chunk ready for TTS (22 chars): ' This is sentence six.'
+2025-11-19 12:23:20,697 [INFO] ✅ LLM streaming complete (15 tokens)
+2025-11-19 12:23:22,044 [INFO]    ✅ Complete MP3 #1: 21888 bytes (from 6 fragments)
+2025-11-19 12:23:22,044 [INFO] 🎤 Sending to TTS #2 (23 chars): ' This is sentence five.'
+2025-11-19 12:23:23,982 [INFO]    ✅ Complete MP3 #2: 33024 bytes (from 9 fragments)
+2025-11-19 12:23:23,983 [INFO] 🎤 Sending to TTS #3 (22 chars): ' This is sentence six.'
+2025-11-19 12:23:25,043 [INFO]    ✅ Complete MP3 #3: 27264 bytes (from 7 fragments)

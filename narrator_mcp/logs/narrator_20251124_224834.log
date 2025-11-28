@@ -1,0 +1,54 @@
+2025-11-24 22:48:38,551 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+2025-11-24 22:48:38,551 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:48:39,429 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 22:48:39,429 [INFO] ✅ Narration complete, sending result response with id=1764046118551
+2025-11-24 22:48:39,430 [INFO] ✅ Result response sent
+2025-11-24 22:48:42,111 [INFO] 📝 Narrate text:
+> how ar eyou^[[D^[[D^[[D                 e
+2025-11-24 22:48:42,111 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:48:42,944 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 22:48:42,945 [INFO] 📦 Final chunk for TTS (38 chars): 'Ah, in the rhythm of the universe, our'
+2025-11-24 22:48:42,945 [INFO] 🎤 Sending to TTS #1 (38 chars): 'Ah, in the rhythm of the universe, our'
+2025-11-24 22:48:44,205 [INFO]    ✅ Complete MP3 #1: 67200 bytes (from 17 fragments)
+2025-11-24 22:48:44,207 [INFO] ✅ Narration complete, sending result response with id=1764046122111
+2025-11-24 22:48:44,207 [INFO] ✅ Result response sent
+2025-11-24 22:48:45,667 [INFO] 📝 Narrate text:
+you today?
+2025-11-24 22:48:45,668 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:48:46,289 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 22:48:46,289 [INFO] 📦 Final chunk for TTS (41 chars): 'Ah, today is but a fleeting moment in the'
+2025-11-24 22:48:46,289 [INFO] 🎤 Sending to TTS #1 (41 chars): 'Ah, today is but a fleeting moment in the'
+2025-11-24 22:48:47,505 [INFO]    ✅ Complete MP3 #1: 79488 bytes (from 20 fragments)
+2025-11-24 22:48:47,507 [INFO] ✅ Narration complete, sending result response with id=1764046125667
+2025-11-24 22:48:47,507 [INFO] ✅ Result response sent
+2025-11-24 22:48:48,540 [INFO] 📝 Narrate text:
+>
+2025-11-24 22:48:48,540 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:48:49,294 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 22:48:49,295 [INFO] ✅ Narration complete, sending result response with id=1764046128540
+2025-11-24 22:48:49,295 [INFO] ✅ Result response sent
+2025-11-24 22:49:23,716 [INFO] 📝 Narrate text:
+/exit
+👋 Goodbye!
+2025-11-24 22:49:23,716 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:49:24,264 [INFO] 📦 Chunk ready for TTS (19 chars): 'Goodbye, my friend.'
+2025-11-24 22:49:24,264 [INFO] 🎤 Sending to TTS #1 (19 chars): 'Goodbye, my friend.'
+2025-11-24 22:49:24,327 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 22:49:24,327 [INFO] 📦 Final chunk for TTS (17 chars): ' May your path be'
+2025-11-24 22:49:25,165 [INFO]    ✅ Complete MP3 #1: 28800 bytes (from 8 fragments)
+2025-11-24 22:49:25,165 [INFO] 🎤 Sending to TTS #2 (17 chars): ' May your path be'
+2025-11-24 22:49:26,073 [INFO]    ✅ Complete MP3 #2: 24960 bytes (from 7 fragments)
+2025-11-24 22:49:26,074 [INFO] ✅ Narration complete, sending result response with id=1764046163715
+2025-11-24 22:49:26,074 [INFO] ✅ Result response sent
+2025-11-24 22:49:28,866 [INFO] 🛑 MCP Server shutting down (signal: SIGTERM)

@@ -1,0 +1,10 @@
+2025-11-19 12:20:02,185 [INFO] 📝 Narrate text:
+Hello, world
+2025-11-19 12:20:03,406 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 12:20:03,406 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 12:20:03,436 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 12:20:03,437 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-19 12:20:04,508 [INFO]    ✅ Complete MP3 #1: 12288 bytes (from 3 fragments)
+2025-11-19 12:20:04,508 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 12:20:05,310 [INFO]    ✅ Complete MP3 #2: 24960 bytes (from 7 fragments)
+2025-11-19 12:20:21,711 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

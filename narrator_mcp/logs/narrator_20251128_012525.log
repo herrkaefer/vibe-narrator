@@ -1,0 +1,129 @@
+2025-11-28 01:25:25,218 [INFO] 🚀 Narrator MCP Server initialized
+2025-11-28 01:25:25,219 [INFO] 📝 Narrate logs: /Users/herrk/dev-local/vibe-narrator/narrator-mcp/logs/narrator_20251128_012525.log
+2025-11-28 01:25:25,310 [INFO] StreamableHTTP session manager started
+2025-11-28 01:25:25,316 [INFO] Created new transport with session ID: e96c6ab8594943f98fa989fb40ae1871
+2025-11-28 01:25:25,347 [INFO] Created new transport with session ID: cfe8ce300c2e4d6981d102ed6b8aed3e
+2025-11-28 01:25:25,363 [INFO] Processing request of type CallToolRequest
+2025-11-28 01:25:25,365 [INFO] ✅ Session configured: model=gpt-4o-mini, voice=Adam, mode=narration, character=overconfident_senior_developer, llm_provider=OpenAI, tts_provider=elevenlabs
+2025-11-28 01:25:25,373 [INFO] Processing request of type ListToolsRequest
+2025-11-28 01:25:29,130 [INFO] Processing request of type CallToolRequest
+2025-11-28 01:25:29,130 [INFO] 🎧 Narrate request received
+2025-11-28 01:25:29,130 [INFO] 📝 Narrate text:
+› Find and fix a bug in @filename 100% context left · ? for shortcuts
+╭────────────────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.63.0)                              │
+│                                                        │
+│ model:     gpt-5.1-codex-max medium   /model to change │
+│ directory: ~/Downloads/narrator_test2                  │
+╰────────────────────────────────────────────────────────╯
+
+  To get started, describe a task or try one of these commands:
+
+  /init - create an AGENTS.md file with instructions for Codex
+  /status - show current session configuration
+  /approvals - choose what Codex can do without approval
+  /model - choose what model and reasoning effort to use
+2025-11-28 01:25:29,130 [INFO] 📝 Narrate text:
+› Find and fix a bug in @filename 100% context left · ? for shortcuts
+╭────────────────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.63.0)                              │
+│                                                        │
+│ model:     gpt-5.1-codex-max medium   /model to change │
+│ directory: ~/Downloads/narrator_test2                  │
+╰────────────────────────────────────────────────────────╯
+
+  To get started, describe a task or try one of these commands:
+
+  /init - create an AGENTS.md file with instructions for Codex
+  /status - show current session configuration
+  /approvals - choose what Codex can do without approval
+  /model - choose what model and reasoning effort to use
+2025-11-28 01:25:31,064 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-28 01:25:31,082 [INFO] ✅ LLM streaming complete (1 tokens)
+2025-11-28 01:25:31,082 [INFO] ✅ LLM streaming complete (1 tokens)
+2025-11-28 01:25:31,082 [INFO] ⏭️ Skipping empty final chunk: '""'
+2025-11-28 01:25:31,082 [INFO] ⏭️ Skipping empty final chunk: '""'
+2025-11-28 01:25:31,082 [INFO] ✅ Narration complete: 2 chars, 0 bytes audio
+2025-11-28 01:25:32,719 [INFO] Processing request of type CallToolRequest
+2025-11-28 01:25:32,720 [INFO] 🎧 Narrate request received
+2025-11-28 01:25:32,720 [INFO] 📝 Narrate text:
+/review - review any changes and find issueswhat'sthecoe
+2025-11-28 01:25:32,720 [INFO] 📝 Narrate text:
+/review - review any changes and find issueswhat'sthecoe
+2025-11-28 01:25:34,499 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-28 01:25:34,523 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-28 01:25:34,523 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-28 01:25:34,523 [INFO] ✅ Narration complete: 0 chars, 0 bytes audio
+2025-11-28 01:25:38,065 [INFO] Processing request of type CallToolRequest
+2025-11-28 01:25:38,065 [INFO] 🎧 Narrate request received
+2025-11-28 01:25:38,065 [INFO] 📝 Narrate text:
+dedoing?
+
+
+› what's the code doing?
+2025-11-28 01:25:38,065 [INFO] 📝 Narrate text:
+dedoing?
+
+
+› what's the code doing?
+2025-11-28 01:25:39,277 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-28 01:25:39,590 [INFO] 📦 Chunk ready for TTS (31 chars): 'Output is empty; let’s move on!'
+2025-11-28 01:25:39,590 [INFO] 📦 Chunk ready for TTS (31 chars): 'Output is empty; let’s move on!'
+2025-11-28 01:25:39,591 [INFO] 🎤 Sending to TTS #1 (31 chars): 'Output is empty; let’s move on!'
+2025-11-28 01:25:39,591 [INFO] 🎤 Sending to TTS #1 (31 chars): 'Output is empty; let’s move on!'
+2025-11-28 01:25:39,768 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-28 01:25:39,768 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-28 01:25:40,111 [INFO] HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Adam "HTTP/1.1 404 Not Found"
+2025-11-28 01:25:40,112 [ERROR] ❌ TTS error: Client error '404 Not Found' for url 'https://api.elevenlabs.io/v1/text-to-speech/Adam'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+Traceback (most recent call last):
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/server.py", line 383, in run_tts
+    async for audio_chunk in stream_tts(**tts_params):
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/tts.py", line 50, in stream_tts
+    async for chunk in _stream_elevenlabs_tts(
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/tts.py", line 145, in _stream_elevenlabs_tts
+    response.raise_for_status()
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/.venv/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '404 Not Found' for url 'https://api.elevenlabs.io/v1/text-to-speech/Adam'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+2025-11-28 01:25:40,112 [ERROR] ❌ TTS error: Client error '404 Not Found' for url 'https://api.elevenlabs.io/v1/text-to-speech/Adam'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+Traceback (most recent call last):
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/server.py", line 383, in run_tts
+    async for audio_chunk in stream_tts(**tts_params):
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/tts.py", line 50, in stream_tts
+    async for chunk in _stream_elevenlabs_tts(
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/tts.py", line 145, in _stream_elevenlabs_tts
+    response.raise_for_status()
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/.venv/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '404 Not Found' for url 'https://api.elevenlabs.io/v1/text-to-speech/Adam'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+2025-11-28 01:25:40,117 [ERROR] ❌ TTS error: Client error '404 Not Found' for url 'https://api.elevenlabs.io/v1/text-to-speech/Adam'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+Traceback (most recent call last):
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/server.py", line 383, in run_tts
+    async for audio_chunk in stream_tts(**tts_params):
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/tts.py", line 50, in stream_tts
+    async for chunk in _stream_elevenlabs_tts(
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/tts.py", line 145, in _stream_elevenlabs_tts
+    response.raise_for_status()
+  File "/Users/herrk/dev-local/vibe-narrator/narrator-mcp/.venv/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '404 Not Found' for url 'https://api.elevenlabs.io/v1/text-to-speech/Adam'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+2025-11-28 01:25:40,256 [INFO] Processing request of type CallToolRequest
+2025-11-28 01:25:40,257 [INFO] 🎧 Narrate request received
+2025-11-28 01:25:40,257 [INFO] 📝 Narrate text:
+Find and fix a bug in @filename · ? for shortcuts•Working(0s • esc to interrupt) › Find and fix a bug in @filename 100% context left · ? for shortcutsWWo•Wor•Work•WorkiWorkin•Working•Working1Working
+2025-11-28 01:25:40,257 [INFO] 📝 Narrate text:
+Find and fix a bug in @filename · ? for shortcuts•Working(0s • esc to interrupt) › Find and fix a bug in @filename 100% context left · ? for shortcutsWWo•Wor•Work•WorkiWorkin•Working•Working1Working
+2025-11-28 01:25:41,540 [INFO] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-28 01:25:41,543 [INFO] ✅ LLM streaming complete (1 tokens)
+2025-11-28 01:25:41,543 [INFO] ✅ LLM streaming complete (1 tokens)
+2025-11-28 01:25:41,543 [INFO] ⏭️ Skipping empty final chunk: '""'
+2025-11-28 01:25:41,543 [INFO] ⏭️ Skipping empty final chunk: '""'
+2025-11-28 01:25:41,543 [INFO] ✅ Narration complete: 2 chars, 0 bytes audio
+2025-11-28 01:25:41,650 [INFO] Terminating session: cfe8ce300c2e4d6981d102ed6b8aed3e
+2025-11-28 01:25:41,829 [INFO] StreamableHTTP session manager shutting down

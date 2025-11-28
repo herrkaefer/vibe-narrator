@@ -1,0 +1,78 @@
+2025-11-24 11:28:30,658 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+2025-11-24 11:28:31,984 [INFO] 📦 Chunk ready for TTS (21 chars): 'How can I help today?'
+2025-11-24 11:28:31,985 [INFO] 🎤 Sending to TTS #1 (21 chars): 'How can I help today?'
+2025-11-24 11:28:31,998 [INFO] ✅ LLM streaming complete (6 tokens)
+2025-11-24 11:28:33,098 [INFO]    ✅ Complete MP3 #1: 19200 bytes (from 5 fragments)
+2025-11-24 11:28:33,099 [INFO] 📝 Narrate text:
+>
+2025-11-24 11:28:33,959 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-24 11:28:33,960 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-24 11:28:34,008 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:34,008 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-24 11:28:34,848 [INFO]    ✅ Complete MP3 #1: 13056 bytes (from 4 fragments)
+2025-11-24 11:28:34,849 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:35,966 [INFO]    ✅ Complete MP3 #2: 24192 bytes (from 6 fragments)
+2025-11-24 11:28:35,966 [INFO] 📝 Narrate text:
+hi ello
+2025-11-24 11:28:37,124 [INFO] 📦 Chunk ready for TTS (12 chars): 'Hello there!'
+2025-11-24 11:28:37,124 [INFO] 🎤 Sending to TTS #1 (12 chars): 'Hello there!'
+2025-11-24 11:28:37,245 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:37,433 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 11:28:37,909 [INFO]    ✅ Complete MP3 #1: 11520 bytes (from 3 fragments)
+2025-11-24 11:28:37,909 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:40,001 [INFO]    ✅ Complete MP3 #2: 24192 bytes (from 6 fragments)
+2025-11-24 11:28:40,002 [INFO] 📝 Narrate text:
+!
+2025-11-24 11:28:42,416 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-24 11:28:42,416 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-24 11:28:42,451 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:42,472 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-24 11:28:43,543 [INFO]    ✅ Complete MP3 #1: 12288 bytes (from 3 fragments)
+2025-11-24 11:28:43,544 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:44,465 [INFO]    ✅ Complete MP3 #2: 28800 bytes (from 8 fragments)
+2025-11-24 11:28:44,466 [INFO] 📝 Narrate text:
+>
+2025-11-24 11:28:45,417 [INFO] 📦 Chunk ready for TTS (27 chars): 'How can I assist you today?'
+2025-11-24 11:28:45,417 [INFO] 🎤 Sending to TTS #1 (27 chars): 'How can I assist you today?'
+2025-11-24 11:28:45,431 [INFO] ✅ LLM streaming complete (7 tokens)
+2025-11-24 11:28:46,983 [INFO]    ✅ Complete MP3 #1: 28032 bytes (from 7 fragments)
+2025-11-24 11:28:51,469 [INFO] 📝 Narrate text:
+what' the      s the weather today?
+2025-11-24 11:28:52,532 [INFO] 📦 Chunk ready for TTS (42 chars): "I can't provide real-time weather updates."
+2025-11-24 11:28:52,532 [INFO] 🎤 Sending to TTS #1 (42 chars): "I can't provide real-time weather updates."
+2025-11-24 11:28:52,735 [INFO] 📦 Chunk ready for TTS (88 chars): ' Please check a reliable weather app or website for the current conditions in your area.'
+2025-11-24 11:28:52,743 [INFO] ✅ LLM streaming complete (24 tokens)
+2025-11-24 11:28:53,477 [INFO]    ✅ Complete MP3 #1: 48000 bytes (from 12 fragments)
+2025-11-24 11:28:53,479 [INFO] 🎤 Sending to TTS #2 (88 chars): ' Please check a reliable weather app or website for the current conditions in your area.'
+2025-11-24 11:28:55,009 [INFO]    ✅ Complete MP3 #2: 97920 bytes (from 24 fragments)
+2025-11-24 11:28:55,011 [INFO] 📝 Narrate text:
+>
+2025-11-24 11:28:55,702 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-24 11:28:55,704 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:55,705 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-24 11:28:55,717 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-24 11:28:57,101 [INFO]    ✅ Complete MP3 #1: 12288 bytes (from 3 fragments)
+2025-11-24 11:28:57,102 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-24 11:28:57,824 [INFO]    ✅ Complete MP3 #2: 22656 bytes (from 6 fragments)
+2025-11-24 11:29:42,413 [INFO] 📝 Narrate text:
+/quit
+👋 Goodbye!
+2025-11-24 11:29:42,899 [INFO] 📦 Chunk ready for TTS (8 chars): 'Goodbye!'
+2025-11-24 11:29:42,900 [INFO] 🎤 Sending to TTS #1 (8 chars): 'Goodbye!'
+2025-11-24 11:29:42,954 [INFO] 📦 Chunk ready for TTS (32 chars): ' Feel free to reach out anytime.'
+2025-11-24 11:29:42,957 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 11:29:43,550 [INFO]    ✅ Complete MP3 #1: 10368 bytes (from 3 fragments)
+2025-11-24 11:29:43,551 [INFO] 🎤 Sending to TTS #2 (32 chars): ' Feel free to reach out anytime.'
+2025-11-24 11:29:44,676 [INFO]    ✅ Complete MP3 #2: 41856 bytes (from 11 fragments)
+2025-11-24 11:30:14,176 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

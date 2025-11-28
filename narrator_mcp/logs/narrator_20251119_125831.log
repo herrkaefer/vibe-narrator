@@ -1,0 +1,241 @@
+2025-11-19 12:58:32,605 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+2025-11-19 12:58:34,252 [INFO] 📦 Chunk ready for TTS (116 chars): "It looks like you're mentioning an interface with audio capabilities, which isn't supported here in text-based chat."
+2025-11-19 12:58:34,253 [INFO] 🎤 Sending to TTS #1 (116 chars): "It looks like you're mentioning an interface with audio capabilities, which isn't supported here in text-based chat."
+2025-11-19 12:58:34,695 [INFO] 📦 Chunk ready for TTS (121 chars): " Although I can't provide audio responses, I'm here to answer any questions or have a conversation with you through text."
+2025-11-19 12:58:34,906 [INFO] 📦 Chunk ready for TTS (78 chars): " If there's anything specific you'd like to know or discuss, feel free to ask!"
+2025-11-19 12:58:34,908 [INFO] ✅ LLM streaming complete (58 tokens)
+2025-11-19 12:58:36,151 [INFO]    ✅ Complete MP3 #1: 104832 bytes (from 26 fragments)
+2025-11-19 12:58:36,153 [INFO] 🎤 Sending to TTS #2 (121 chars): " Although I can't provide audio responses, I'm here to answer any questions or have a conversation with you through text."
+2025-11-19 12:58:37,809 [INFO]    ✅ Complete MP3 #2: 103296 bytes (from 26 fragments)
+2025-11-19 12:58:37,811 [INFO] 🎤 Sending to TTS #3 (78 chars): " If there's anything specific you'd like to know or discuss, feel free to ask!"
+2025-11-19 12:58:39,544 [INFO]    ✅ Complete MP3 #3: 74496 bytes (from 19 fragments)
+2025-11-19 12:58:39,545 [INFO] 📝 Narrate text:
+You:
+2025-11-19 12:58:40,058 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 12:58:40,059 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 12:58:40,172 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 12:58:40,179 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-19 12:58:41,133 [INFO]    ✅ Complete MP3 #1: 9600 bytes (from 3 fragments)
+2025-11-19 12:58:41,134 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 12:58:42,158 [INFO]    ✅ Complete MP3 #2: 30720 bytes (from 8 fragments)
+2025-11-19 12:58:58,397 [INFO] 📝 Narrate text:
+how ar eyou     e you?
+2025-11-19 12:58:59,194 [INFO] 📦 Chunk ready for TTS (27 chars): "I'm here and ready to help!"
+2025-11-19 12:58:59,194 [INFO] 🎤 Sending to TTS #1 (27 chars): "I'm here and ready to help!"
+2025-11-19 12:58:59,257 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 12:58:59,267 [INFO] ✅ LLM streaming complete (14 tokens)
+2025-11-19 12:59:00,181 [INFO]    ✅ Complete MP3 #1: 21120 bytes (from 6 fragments)
+2025-11-19 12:59:00,182 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 12:59:00,793 [INFO]    ✅ Complete MP3 #2: 22656 bytes (from 6 fragments)
+2025-11-19 12:59:00,794 [INFO] 📝 Narrate text:
+how are you?
+2025-11-19 12:59:01,684 [INFO] 📦 Chunk ready for TTS (21 chars): 'Thank you for asking!'
+2025-11-19 12:59:01,685 [INFO] 🎤 Sending to TTS #1 (21 chars): 'Thank you for asking!'
+2025-11-19 12:59:01,893 [INFO] 📦 Chunk ready for TTS (72 chars): " I'm just a program, so I don't have feelings, but I'm here to help you."
+2025-11-19 12:59:01,907 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 12:59:01,912 [INFO] ✅ LLM streaming complete (30 tokens)
+2025-11-19 12:59:02,332 [INFO]    ✅ Complete MP3 #1: 23424 bytes (from 6 fragments)
+2025-11-19 12:59:02,333 [INFO] 🎤 Sending to TTS #2 (72 chars): " I'm just a program, so I don't have feelings, but I'm here to help you."
+2025-11-19 12:59:03,792 [INFO]    ✅ Complete MP3 #2: 87168 bytes (from 22 fragments)
+2025-11-19 12:59:03,793 [INFO] 🎤 Sending to TTS #3 (28 chars): ' How can I assist you today?'
+2025-11-19 12:59:04,873 [INFO]    ✅ Complete MP3 #3: 44928 bytes (from 11 fragments)
+2025-11-19 12:59:04,874 [INFO] 📝 Narrate text:
+You:
+2025-11-19 12:59:05,561 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 12:59:05,561 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 12:59:05,595 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 12:59:05,601 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-19 12:59:06,460 [INFO]    ✅ Complete MP3 #1: 13056 bytes (from 4 fragments)
+2025-11-19 12:59:06,460 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 12:59:07,619 [INFO]    ✅ Complete MP3 #2: 24192 bytes (from 6 fragments)
+2025-11-19 12:59:59,110 [INFO] 📝 Narrate text:
+我正在做一个MCPserv，它可以它就是你那可以对任何用户的程序进行声音播报。现在你帮我起一个给你自己起一个名字，好不好？
+2025-11-19 12:59:59,680 [INFO] 📦 Chunk ready for TTS (5 chars): '当然可以！'
+2025-11-19 12:59:59,681 [INFO] 🎤 Sending to TTS #1 (5 chars): '当然可以！'
+2025-11-19 13:00:00,157 [INFO] 📦 Chunk ready for TTS (36 chars): '既然你的程序是一个声音播报助手，我们可以选择一个既亲切又容易记住的名字。'
+2025-11-19 13:00:00,193 [INFO] 📦 Chunk ready for TTS (12 chars): '以下是一些建议：\n\n1.'
+2025-11-19 13:00:00,518 [INFO] 📦 Chunk ready for TTS (31 chars): ' **声声** - 这个名字听起来亲切，而且直接与声音相关。\n'
+2025-11-19 13:00:00,532 [INFO] 📦 Chunk ready for TTS (2 chars): '2.'
+2025-11-19 13:00:00,853 [INFO] 📦 Chunk ready for TTS (27 chars): ' **播音小助手** - 简单明了，直接说明了功能。\n'
+2025-11-19 13:00:00,853 [INFO] 📦 Chunk ready for TTS (2 chars): '3.'
+2025-11-19 13:00:01,157 [INFO] 📦 Chunk ready for TTS (24 chars): ' **语音精灵** - 充满灵气，与声音有关。\n'
+2025-11-19 13:00:01,157 [INFO] 📦 Chunk ready for TTS (2 chars): '4.'
+2025-11-19 13:00:01,188 [INFO]    ✅ Complete MP3 #1: 16896 bytes (from 5 fragments)
+2025-11-19 13:00:01,188 [INFO] 🎤 Sending to TTS #2 (36 chars): '既然你的程序是一个声音播报助手，我们可以选择一个既亲切又容易记住的名字。'
+2025-11-19 13:00:01,518 [INFO] 📦 Chunk ready for TTS (31 chars): ' **音达** - 结合“音”和“达到”，寓意传达声音信息。\n'
+2025-11-19 13:00:01,578 [INFO] 📦 Chunk ready for TTS (2 chars): '5.'
+2025-11-19 13:00:02,766 [INFO]    ✅ Complete MP3 #2: 112128 bytes (from 28 fragments)
+2025-11-19 13:00:02,768 [INFO] 🎤 Sending to TTS #3 (12 chars): '以下是一些建议：\n\n1.'
+2025-11-19 13:00:02,946 [INFO] 📦 Chunk ready for TTS (43 chars): ' **麦小音** - 像是一个可爱的朋友，同时又和麦克风有关。\n\n你觉得哪个名字合适？'
+2025-11-19 13:00:03,882 [INFO]    ✅ Complete MP3 #3: 46464 bytes (from 12 fragments)
+2025-11-19 13:00:03,883 [INFO] 🎤 Sending to TTS #4 (31 chars): ' **声声** - 这个名字听起来亲切，而且直接与声音相关。\n'
+2025-11-19 13:00:04,319 [INFO] 📦 Chunk ready for TTS (32 chars): '如果你有特定的偏好或者风格，也可以告诉我，我可以再提供更多建议。'
+2025-11-19 13:00:04,319 [INFO] ✅ LLM streaming complete (162 tokens)
+2025-11-19 13:00:05,083 [INFO]    ✅ Complete MP3 #4: 81792 bytes (from 20 fragments)
+2025-11-19 13:00:05,084 [INFO] 🎤 Sending to TTS #5 (2 chars): '2.'
+2025-11-19 13:00:05,847 [INFO]    ✅ Complete MP3 #5: 31488 bytes (from 8 fragments)
+2025-11-19 13:00:05,847 [INFO] 🎤 Sending to TTS #6 (27 chars): ' **播音小助手** - 简单明了，直接说明了功能。\n'
+2025-11-19 13:00:07,077 [INFO]    ✅ Complete MP3 #6: 81024 bytes (from 20 fragments)
+2025-11-19 13:00:07,079 [INFO] 🎤 Sending to TTS #7 (2 chars): '3.'
+2025-11-19 13:00:08,172 [INFO]    ✅ Complete MP3 #7: 29568 bytes (from 8 fragments)
+2025-11-19 13:00:08,173 [INFO] 🎤 Sending to TTS #8 (24 chars): ' **语音精灵** - 充满灵气，与声音有关。\n'
+2025-11-19 13:00:09,283 [INFO]    ✅ Complete MP3 #8: 71424 bytes (from 18 fragments)
+2025-11-19 13:00:09,284 [INFO] 🎤 Sending to TTS #9 (2 chars): '4.'
+2025-11-19 13:00:10,527 [INFO]    ✅ Complete MP3 #9: 30720 bytes (from 8 fragments)
+2025-11-19 13:00:10,528 [INFO] 🎤 Sending to TTS #10 (31 chars): ' **音达** - 结合“音”和“达到”，寓意传达声音信息。\n'
+2025-11-19 13:00:12,292 [INFO]    ✅ Complete MP3 #10: 88320 bytes (from 22 fragments)
+2025-11-19 13:00:12,294 [INFO] 🎤 Sending to TTS #11 (2 chars): '5.'
+2025-11-19 13:00:13,029 [INFO]    ✅ Complete MP3 #11: 9600 bytes (from 3 fragments)
+2025-11-19 13:00:13,030 [INFO] 🎤 Sending to TTS #12 (43 chars): ' **麦小音** - 像是一个可爱的朋友，同时又和麦克风有关。\n\n你觉得哪个名字合适？'
+2025-11-19 13:00:17,112 [INFO]    ✅ Complete MP3 #12: 112128 bytes (from 28 fragments)
+2025-11-19 13:00:17,113 [INFO] 🎤 Sending to TTS #13 (32 chars): '如果你有特定的偏好或者风格，也可以告诉我，我可以再提供更多建议。'
+2025-11-19 13:00:18,587 [INFO]    ✅ Complete MP3 #13: 101760 bytes (from 25 fragments)
+2025-11-19 13:00:18,593 [INFO] 📝 Narrate text:
+^[[D^[[D^[[D^[[D^[[D^[[D^[[D^[[D
+2025-11-19 13:00:20,834 [INFO] 📦 Chunk ready for TTS (157 chars): 'It looks like you\'re experiencing an issue with your keyboard or text editor that is causing a sequence of characters (specifically, "^[ [ D") to be entered.'
+2025-11-19 13:00:20,835 [INFO] 🎤 Sending to TTS #1 (157 chars): 'It looks like you\'re experiencing an issue with your keyboard or text editor that is causing a sequence of characters (specifically, "^[ [ D") to be entered.'
+2025-11-19 13:00:22,131 [INFO] 📦 Chunk ready for TTS (130 chars): " This sequence is typically generated when arrow keys are pressed in a terminal or text editor that doesn't support them directly."
+2025-11-19 13:00:22,491 [INFO] 📦 Chunk ready for TTS (65 chars): ' \n\nHere are a few steps you can follow to address this issue:\n\n1.'
+2025-11-19 13:00:22,882 [INFO] 📦 Chunk ready for TTS (74 chars): ' **Check your Keyboard**: Make sure your keyboard is functioning properly.'
+2025-11-19 13:00:22,977 [INFO]    ✅ Complete MP3 #1: 151296 bytes (from 37 fragments)
+2025-11-19 13:00:22,980 [INFO] 🎤 Sending to TTS #2 (130 chars): " This sequence is typically generated when arrow keys are pressed in a terminal or text editor that doesn't support them directly."
+2025-11-19 13:00:23,141 [INFO] 📦 Chunk ready for TTS (84 chars): ' Try reconnecting it or using a different keyboard to see if the issue persists.\n\n2.'
+2025-11-19 13:00:23,735 [INFO] 📦 Chunk ready for TTS (118 chars): " **Text Editor**: If you're using a terminal or text editor, make sure it is configured to handle arrow keys properly."
+2025-11-19 13:00:24,185 [INFO] 📦 Chunk ready for TTS (95 chars): ' Some older or simpler terminals do not support arrow key navigation without configuration.\n\n3.'
+2025-11-19 13:00:24,818 [INFO]    ✅ Complete MP3 #2: 127488 bytes (from 32 fragments)
+2025-11-19 13:00:24,819 [INFO] 🎤 Sending to TTS #3 (65 chars): ' \n\nHere are a few steps you can follow to address this issue:\n\n1.'
+2025-11-19 13:00:25,246 [INFO] 📦 Chunk ready for TTS (172 chars): ' **Switch to a Supported Editor**: Use an editor or terminal that is known to support arrow key navigations, such as VSCode, Sublime Text, or modern terminal emulators.\n\n4.'
+2025-11-19 13:00:25,673 [INFO] 📦 Chunk ready for TTS (120 chars): ' **Software Configurations**: Check if there are any software-specific settings that might be influencing this behavior.'
+2025-11-19 13:00:25,798 [INFO]    ✅ Complete MP3 #3: 66432 bytes (from 17 fragments)
+2025-11-19 13:00:25,799 [INFO] 🎤 Sending to TTS #4 (74 chars): ' **Check your Keyboard**: Make sure your keyboard is functioning properly.'
+2025-11-19 13:00:25,834 [INFO] 📦 Chunk ready for TTS (64 chars): ' Sometimes, keyboard shortcuts can be remapped accidentally.\n\n5.'
+2025-11-19 13:00:26,332 [INFO] 📦 Chunk ready for TTS (133 chars): ' **Operating System**: Ensure your operating system is up to date, as sometimes glitches can be resolved with updates or patches.\n\n6.'
+2025-11-19 13:00:27,077 [INFO]    ✅ Complete MP3 #4: 66432 bytes (from 17 fragments)
+2025-11-19 13:00:27,079 [INFO] 🎤 Sending to TTS #5 (84 chars): ' Try reconnecting it or using a different keyboard to see if the issue persists.\n\n2.'
+2025-11-19 13:00:27,229 [INFO] 📦 Chunk ready for TTS (208 chars): " **Reboot**: As a last resort, try rebooting your system which can sometimes resolve unexpected behavior.\n\nIf you're still encountering the problem, please provide more context, and I can try to help further!"
+2025-11-19 13:00:27,230 [INFO] ✅ LLM streaming complete (286 tokens)
+2025-11-19 13:00:29,117 [INFO]    ✅ Complete MP3 #5: 117888 bytes (from 29 fragments)
+2025-11-19 13:00:29,119 [INFO] 🎤 Sending to TTS #6 (118 chars): " **Text Editor**: If you're using a terminal or text editor, make sure it is configured to handle arrow keys properly."
+2025-11-19 13:00:30,750 [INFO]    ✅ Complete MP3 #6: 111360 bytes (from 28 fragments)
+2025-11-19 13:00:30,751 [INFO] 🎤 Sending to TTS #7 (95 chars): ' Some older or simpler terminals do not support arrow key navigation without configuration.\n\n3.'
+2025-11-19 13:00:32,486 [INFO]    ✅ Complete MP3 #7: 109056 bytes (from 27 fragments)
+2025-11-19 13:00:32,488 [INFO] 🎤 Sending to TTS #8 (172 chars): ' **Switch to a Supported Editor**: Use an editor or terminal that is known to support arrow key navigations, such as VSCode, Sublime Text, or modern terminal emulators.\n\n4.'
+2025-11-19 13:00:34,834 [INFO]    ✅ Complete MP3 #8: 180096 bytes (from 44 fragments)
+2025-11-19 13:00:34,837 [INFO] 🎤 Sending to TTS #9 (120 chars): ' **Software Configurations**: Check if there are any software-specific settings that might be influencing this behavior.'
+2025-11-19 13:00:36,282 [INFO]    ✅ Complete MP3 #9: 93696 bytes (from 23 fragments)
+2025-11-19 13:00:36,284 [INFO] 🎤 Sending to TTS #10 (64 chars): ' Sometimes, keyboard shortcuts can be remapped accidentally.\n\n5.'
+2025-11-19 13:00:37,354 [INFO]    ✅ Complete MP3 #10: 64896 bytes (from 16 fragments)
+2025-11-19 13:00:37,355 [INFO] 🎤 Sending to TTS #11 (133 chars): ' **Operating System**: Ensure your operating system is up to date, as sometimes glitches can be resolved with updates or patches.\n\n6.'
+2025-11-19 13:00:44,602 [INFO]    ✅ Complete MP3 #11: 122496 bytes (from 30 fragments)
+2025-11-19 13:00:44,604 [INFO] 🎤 Sending to TTS #12 (208 chars): " **Reboot**: As a last resort, try rebooting your system which can sometimes resolve unexpected behavior.\n\nIf you're still encountering the problem, please provide more context, and I can try to help further!"
+2025-11-19 13:00:47,192 [INFO]    ✅ Complete MP3 #12: 196992 bytes (from 49 fragments)
+2025-11-19 13:00:47,195 [INFO] 📝 Narrate text:
+我正在做一个MCPserv，它可以它就是你那可以对任何用户的程序进行声音播报。现在你帮我起一个给你自己起一个名字，好不好？
+2025-11-19 13:00:47,921 [INFO] 📦 Chunk ready for TTS (5 chars): '当然可以！'
+2025-11-19 13:00:47,921 [INFO] 🎤 Sending to TTS #1 (5 chars): '当然可以！'
+2025-11-19 13:00:48,608 [INFO] 📦 Chunk ready for TTS (50 chars): '既然您的程序名是“MCPserv”，那我为自己起一个与之匹配的名字，叫做“MCPvoice”怎么样？'
+2025-11-19 13:00:48,976 [INFO] 📦 Chunk ready for TTS (31 chars): '这样名字既贴合您的项目主题，又能体现我作为声音播报助手的功能。'
+2025-11-19 13:00:49,121 [INFO] 📦 Chunk ready for TTS (10 chars): '希望您喜欢这个名字！'
+2025-11-19 13:00:49,122 [INFO] ✅ LLM streaming complete (60 tokens)
+2025-11-19 13:00:49,135 [INFO]    ✅ Complete MP3 #1: 14592 bytes (from 4 fragments)
+2025-11-19 13:00:49,135 [INFO] 🎤 Sending to TTS #2 (50 chars): '既然您的程序名是“MCPserv”，那我为自己起一个与之匹配的名字，叫做“MCPvoice”怎么样？'
+2025-11-19 13:00:50,761 [INFO]    ✅ Complete MP3 #2: 123264 bytes (from 31 fragments)
+2025-11-19 13:00:50,762 [INFO] 🎤 Sending to TTS #3 (31 chars): '这样名字既贴合您的项目主题，又能体现我作为声音播报助手的功能。'
+2025-11-19 13:00:52,271 [INFO]    ✅ Complete MP3 #3: 112128 bytes (from 28 fragments)
+2025-11-19 13:00:52,272 [INFO] 🎤 Sending to TTS #4 (10 chars): '希望您喜欢这个名字！'
+2025-11-19 13:00:54,061 [INFO]    ✅ Complete MP3 #4: 32256 bytes (from 8 fragments)
+2025-11-19 13:00:54,062 [INFO] 📝 Narrate text:
+You:
+2025-11-19 13:00:54,556 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 13:00:54,558 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 13:00:54,571 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 13:00:54,571 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-19 13:00:55,171 [INFO]    ✅ Complete MP3 #1: 11520 bytes (from 3 fragments)
+2025-11-19 13:00:55,171 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 13:00:55,991 [INFO]    ✅ Complete MP3 #2: 24192 bytes (from 6 fragments)
+2025-11-19 13:00:55,992 [INFO] 📝 Narrate text:
+ying
+2025-11-19 13:00:56,712 [INFO] 📦 Chunk ready for TTS (47 chars): 'It looks like your message might be incomplete.'
+2025-11-19 13:00:56,712 [INFO] 🎤 Sending to TTS #1 (47 chars): 'It looks like your message might be incomplete.'
+2025-11-19 13:00:57,002 [INFO] 📦 Chunk ready for TTS (79 chars): ' Could you please provide more context or elaborate on what you need help with?'
+2025-11-19 13:00:57,017 [INFO] ✅ LLM streaming complete (24 tokens)
+2025-11-19 13:00:57,625 [INFO]    ✅ Complete MP3 #1: 46464 bytes (from 12 fragments)
+2025-11-19 13:00:57,626 [INFO] 🎤 Sending to TTS #2 (79 chars): ' Could you please provide more context or elaborate on what you need help with?'
+2025-11-19 13:00:58,857 [INFO]    ✅ Complete MP3 #2: 71424 bytes (from 18 fragments)
+2025-11-19 13:00:58,858 [INFO] 📝 Narrate text:
+需要英文名字
+2025-11-19 13:00:59,624 [INFO] 📦 Chunk ready for TTS (5 chars): '当然可以！'
+2025-11-19 13:00:59,625 [INFO] 🎤 Sending to TTS #1 (5 chars): '当然可以！'
+2025-11-19 13:00:59,995 [INFO] 📦 Chunk ready for TTS (24 chars): '根据你的需求，可以考虑以下几种英文名字：\n\n1.'
+2025-11-19 13:01:00,450 [INFO]    ✅ Complete MP3 #1: 16128 bytes (from 4 fragments)
+2025-11-19 13:01:00,451 [INFO] 🎤 Sending to TTS #2 (24 chars): '根据你的需求，可以考虑以下几种英文名字：\n\n1.'
+2025-11-19 13:01:00,869 [INFO] 📦 Chunk ready for TTS (69 chars): ' **经典和传统**：\n   - James\n   - Elizabeth\n   - William\n   - Catherine\n\n2.'
+2025-11-19 13:01:01,360 [INFO] 📦 Chunk ready for TTS (58 chars): ' **现代和流行**：\n   - Aiden\n   - Olivia\n   - Ethan\n   - Ava\n\n3.'
+2025-11-19 13:01:01,588 [INFO]    ✅ Complete MP3 #2: 75264 bytes (from 19 fragments)
+2025-11-19 13:01:01,589 [INFO] 🎤 Sending to TTS #3 (69 chars): ' **经典和传统**：\n   - James\n   - Elizabeth\n   - William\n   - Catherine\n\n2.'
+2025-11-19 13:01:01,850 [INFO] 📦 Chunk ready for TTS (62 chars): ' **独特和不寻常**：\n   - Orion\n   - Seraphina\n   - Zane\n   - Lyra\n\n4.'
+2025-11-19 13:01:03,060 [INFO]    ✅ Complete MP3 #3: 85632 bytes (from 21 fragments)
+2025-11-19 13:01:03,061 [INFO] 🎤 Sending to TTS #4 (58 chars): ' **现代和流行**：\n   - Aiden\n   - Olivia\n   - Ethan\n   - Ava\n\n3.'
+2025-11-19 13:01:03,239 [INFO] 📦 Chunk ready for TTS (95 chars): ' **简短和易记**：\n   - Max\n   - Mia\n   - Leo\n   - Zoe\n\n如果你有其他的偏好或要求，比如名字的含义、文化背景或性别，请告诉我，我可以提供更合适的建议！'
+2025-11-19 13:01:03,241 [INFO] ✅ LLM streaming complete (153 tokens)
+2025-11-19 13:01:04,835 [INFO]    ✅ Complete MP3 #4: 109056 bytes (from 27 fragments)
+2025-11-19 13:01:04,837 [INFO] 🎤 Sending to TTS #5 (62 chars): ' **独特和不寻常**：\n   - Orion\n   - Seraphina\n   - Zane\n   - Lyra\n\n4.'
+2025-11-19 13:01:06,989 [INFO]    ✅ Complete MP3 #5: 126720 bytes (from 31 fragments)
+2025-11-19 13:01:06,991 [INFO] 🎤 Sending to TTS #6 (95 chars): ' **简短和易记**：\n   - Max\n   - Mia\n   - Leo\n   - Zoe\n\n如果你有其他的偏好或要求，比如名字的含义、文化背景或性别，请告诉我，我可以提供更合适的建议！'
+2025-11-19 13:01:09,808 [INFO]    ✅ Complete MP3 #6: 238464 bytes (from 59 fragments)
+2025-11-19 13:01:09,811 [INFO] 📝 Narrate text:
+需要英文名字
+2025-11-19 13:01:10,419 [INFO] 📦 Chunk ready for TTS (5 chars): '当然可以！'
+2025-11-19 13:01:10,419 [INFO] 🎤 Sending to TTS #1 (5 chars): '当然可以！'
+2025-11-19 13:01:11,082 [INFO] 📦 Chunk ready for TTS (37 chars): '在选择英文名字时，你可能想考虑一下它的含义、发音以及它是否与你的个性相符。'
+2025-11-19 13:01:11,273 [INFO] 📦 Chunk ready for TTS (12 chars): '以下是一些建议：\n\n1.'
+2025-11-19 13:01:12,182 [INFO] 📦 Chunk ready for TTS (111 chars): ' 男性名字：\n   - Alexander (亚历山大)\n   - Benjamin (本杰明)\n   - Christopher (克里斯托弗)\n   - Daniel (丹尼尔)\n   - Ethan (伊桑)\n\n2.'
+2025-11-19 13:01:12,542 [INFO]    ✅ Complete MP3 #1: 19200 bytes (from 5 fragments)
+2025-11-19 13:01:12,542 [INFO] 🎤 Sending to TTS #2 (37 chars): '在选择英文名字时，你可能想考虑一下它的含义、发音以及它是否与你的个性相符。'
+2025-11-19 13:01:12,683 [INFO] 📦 Chunk ready for TTS (102 chars): ' 女性名字：\n   - Abigail (阿比盖尔)\n   - Charlotte (夏洛特)\n   - Emily (艾米莉)\n   - Grace (格蕾丝)\n   - Hannah (汉娜)\n\n3.'
+2025-11-19 13:01:13,249 [INFO] 📦 Chunk ready for TTS (106 chars): ' 中性名字：\n   - Alex (亚历克斯)\n   - Casey (凯西)\n   - Jordan (乔丹)\n   - Riley (莱利)\n   - Taylor (泰勒)\n\n希望这些名字中有一个能吸引你！'
+2025-11-19 13:01:13,583 [INFO] 📦 Chunk ready for TTS (28 chars): '如果你有特定的喜好或需求，请告诉我，我可以提供更多建议。'
+2025-11-19 13:01:13,592 [INFO] ✅ LLM streaming complete (201 tokens)
+2025-11-19 13:01:14,700 [INFO]    ✅ Complete MP3 #2: 134400 bytes (from 33 fragments)
+2025-11-19 13:01:14,702 [INFO] 🎤 Sending to TTS #3 (12 chars): '以下是一些建议：\n\n1.'
+2025-11-19 13:01:15,471 [INFO]    ✅ Complete MP3 #3: 29568 bytes (from 8 fragments)
+2025-11-19 13:01:15,471 [INFO] 🎤 Sending to TTS #4 (111 chars): ' 男性名字：\n   - Alexander (亚历山大)\n   - Benjamin (本杰明)\n   - Christopher (克里斯托弗)\n   - Daniel (丹尼尔)\n   - Ethan (伊桑)\n\n2.'
+2025-11-19 13:01:17,719 [INFO]    ✅ Complete MP3 #4: 178560 bytes (from 44 fragments)
+2025-11-19 13:01:17,721 [INFO] 🎤 Sending to TTS #5 (102 chars): ' 女性名字：\n   - Abigail (阿比盖尔)\n   - Charlotte (夏洛特)\n   - Emily (艾米莉)\n   - Grace (格蕾丝)\n   - Hannah (汉娜)\n\n3.'
+2025-11-19 13:01:20,077 [INFO]    ✅ Complete MP3 #5: 159360 bytes (from 39 fragments)
+2025-11-19 13:01:20,078 [INFO] 🎤 Sending to TTS #6 (106 chars): ' 中性名字：\n   - Alex (亚历克斯)\n   - Casey (凯西)\n   - Jordan (乔丹)\n   - Riley (莱利)\n   - Taylor (泰勒)\n\n希望这些名字中有一个能吸引你！'
+2025-11-19 13:01:23,094 [INFO]    ✅ Complete MP3 #6: 190464 bytes (from 47 fragments)
+2025-11-19 13:01:23,096 [INFO] 🎤 Sending to TTS #7 (28 chars): '如果你有特定的喜好或需求，请告诉我，我可以提供更多建议。'
+2025-11-19 13:01:24,457 [INFO]    ✅ Complete MP3 #7: 89856 bytes (from 22 fragments)
+2025-11-19 13:01:24,458 [INFO] 📝 Narrate text:
+You:
+2025-11-19 13:01:24,867 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 13:01:24,867 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 13:01:24,940 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 13:01:24,944 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-19 13:01:26,093 [INFO]    ✅ Complete MP3 #1: 12288 bytes (from 3 fragments)
+2025-11-19 13:01:26,093 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 13:01:27,222 [INFO]    ✅ Complete MP3 #2: 33792 bytes (from 9 fragments)
+2025-11-19 13:01:27,223 [INFO] 📝 Narrate text:
+^C^C^C^C
+2025-11-19 13:01:27,799 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 13:01:27,799 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 13:01:28,460 [INFO] 📦 Chunk ready for TTS (134 chars): ' It looks like you might be trying to interrupt a process or end a command with `^C`, which is the keyboard shortcut for "Ctrl" + "C".'
+2025-11-19 13:01:28,570 [INFO]    ✅ Complete MP3 #1: 8832 bytes (from 3 fragments)
+2025-11-19 13:01:28,570 [INFO] 🎤 Sending to TTS #2 (134 chars): ' It looks like you might be trying to interrupt a process or end a command with `^C`, which is the keyboard shortcut for "Ctrl" + "C".'
+2025-11-19 13:01:28,666 [INFO] 📦 Chunk ready for TTS (67 chars): " If there's anything specific you need help with, feel free to ask!"
+2025-11-19 13:01:28,667 [INFO] ✅ LLM streaming complete (49 tokens)
+2025-11-19 13:01:30,461 [INFO]    ✅ Complete MP3 #2: 137088 bytes (from 34 fragments)
+2025-11-19 13:01:30,463 [INFO] 🎤 Sending to TTS #3 (67 chars): " If there's anything specific you need help with, feel free to ask!"
+2025-11-19 13:01:32,267 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

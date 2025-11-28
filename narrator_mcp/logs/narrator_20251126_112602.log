@@ -1,0 +1,5 @@
+2025-11-26 11:26:02,193 [INFO] 🚀 Narrator MCP Server initialized
+2025-11-26 11:26:02,194 [INFO] 📝 Narrate logs: /Users/herrk/dev-local/vibe-narrator/narrator-mcp/logs/narrator_20251126_112602.log
+2025-11-26 11:26:02,246 [INFO] StreamableHTTP session manager started
+2025-11-26 11:26:02,247 [INFO] StreamableHTTP session manager shutting down
+2025-11-26 11:26:02,248 [INFO] 🛑 Narrator MCP Server shutting down

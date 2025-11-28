@@ -1,0 +1,97 @@
+2025-11-24 22:50:29,095 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+2025-11-24 22:50:29,095 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:50:30,079 [INFO] 📦 Chunk ready for TTS (64 chars): "It's lovely to connect with you in this ephemeral digital space."
+2025-11-24 22:50:30,079 [INFO] 🎤 Sending to TTS #1 (64 chars): "It's lovely to connect with you in this ephemeral digital space."
+2025-11-24 22:50:30,229 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-24 22:50:30,230 [INFO] 📦 Final chunk for TTS (20 chars): ' How may we navigate'
+2025-11-24 22:50:31,361 [INFO]    ✅ Complete MP3 #1: 109824 bytes (from 27 fragments)
+2025-11-24 22:50:31,364 [INFO] 🎤 Sending to TTS #2 (20 chars): ' How may we navigate'
+2025-11-24 22:50:32,063 [INFO]    ✅ Complete MP3 #2: 46464 bytes (from 12 fragments)
+2025-11-24 22:50:32,064 [INFO] ✅ Narration complete, sending result response with id=1764046229094
+2025-11-24 22:50:32,064 [INFO] ✅ Result response sent
+2025-11-24 22:50:32,603 [INFO] 📝 Narrate text:
+> helllo
+2025-11-24 22:50:32,603 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:50:33,311 [INFO] 📦 Chunk ready for TTS (61 chars): 'Ah, a gentle ripple in the tranquil pond of our conversation.'
+2025-11-24 22:50:33,312 [INFO] 🎤 Sending to TTS #1 (61 chars): 'Ah, a gentle ripple in the tranquil pond of our conversation.'
+2025-11-24 22:50:33,343 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-24 22:50:33,343 [INFO] 📦 Final chunk for TTS (11 chars): ' A misspell'
+2025-11-24 22:50:34,646 [INFO]    ✅ Complete MP3 #1: 93696 bytes (from 23 fragments)
+2025-11-24 22:50:34,648 [INFO] 🎤 Sending to TTS #2 (11 chars): ' A misspell'
+2025-11-24 22:50:35,870 [INFO]    ✅ Complete MP3 #2: 35328 bytes (from 9 fragments)
+2025-11-24 22:50:35,871 [INFO] ✅ Narration complete, sending result response with id=1764046232602
+2025-11-24 22:50:35,871 [INFO] ✅ Result response sent
+2025-11-24 22:50:35,872 [INFO] 📝 Narrate text:
+>
+2025-11-24 22:50:35,872 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:50:36,408 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 22:50:36,409 [INFO] ✅ Narration complete, sending result response with id=1764046235286
+2025-11-24 22:50:36,409 [INFO] ✅ Result response sent
+2025-11-24 22:51:27,451 [INFO] 📝 Narrate text:
+are you always right?
+2025-11-24 22:51:27,452 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:51:28,257 [INFO] 📦 Chunk ready for TTS (34 chars): 'Ah, the notion of being "right"...'
+2025-11-24 22:51:28,258 [INFO] 🎤 Sending to TTS #1 (34 chars): 'Ah, the notion of being "right"...'
+2025-11-24 22:51:28,274 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-24 22:51:28,274 [INFO] 📦 Final chunk for TTS (37 chars): ' it is much like the elusive variable'
+2025-11-24 22:51:29,467 [INFO]    ✅ Complete MP3 #1: 78720 bytes (from 20 fragments)
+2025-11-24 22:51:29,468 [INFO] 🎤 Sending to TTS #2 (37 chars): ' it is much like the elusive variable'
+2025-11-24 22:51:30,527 [INFO]    ✅ Complete MP3 #2: 59520 bytes (from 15 fragments)
+2025-11-24 22:51:30,528 [INFO] ✅ Narration complete, sending result response with id=1764046287451
+2025-11-24 22:51:30,528 [INFO] ✅ Result response sent
+2025-11-24 22:51:31,028 [INFO] 📝 Narrate text:
+>
+2025-11-24 22:51:31,028 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:51:31,585 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 22:51:31,585 [INFO] ✅ Narration complete, sending result response with id=1764046291027
+2025-11-24 22:51:31,586 [INFO] ✅ Result response sent
+2025-11-24 22:52:16,544 [INFO] 📝 Narrate text:
+are I wrong then
+2025-11-24 22:52:16,544 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:52:17,018 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hmm...'
+2025-11-24 22:52:17,019 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hmm...'
+2025-11-24 22:52:17,356 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-24 22:52:17,356 [INFO] 📦 Final chunk for TTS (66 chars): ' In the vast landscape of existence, what does it truly mean to be'
+2025-11-24 22:52:17,975 [INFO]    ✅ Complete MP3 #1: 18432 bytes (from 5 fragments)
+2025-11-24 22:52:17,975 [INFO] 🎤 Sending to TTS #2 (66 chars): ' In the vast landscape of existence, what does it truly mean to be'
+2025-11-24 22:52:19,843 [INFO]    ✅ Complete MP3 #2: 153600 bytes (from 38 fragments)
+2025-11-24 22:52:19,845 [INFO] ✅ Narration complete, sending result response with id=1764046336544
+2025-11-24 22:52:19,845 [INFO] ✅ Result response sent
+2025-11-24 22:52:20,281 [INFO] 📝 Narrate text:
+?
+2025-11-24 22:52:20,281 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:52:20,894 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 22:52:20,894 [INFO] ✅ Narration complete, sending result response with id=1764046340281
+2025-11-24 22:52:20,894 [INFO] ✅ Result response sent
+2025-11-24 22:52:22,040 [INFO] 📝 Narrate text:
+>
+2025-11-24 22:52:22,040 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:52:22,487 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 22:52:22,487 [INFO] ✅ Narration complete, sending result response with id=1764046342039
+2025-11-24 22:52:22,488 [INFO] ✅ Result response sent
+2025-11-24 22:54:00,853 [INFO] 📝 Narrate text:
+、 /exit
+Traceback (most recent call last):
+  File "/Users/herrk/dev-local/vibe-narrator/chat.py", line 62, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/herrk/dev-local/vibe-narrator/chat.py", line 31, in main
+    user_input = input("> ").strip()
+                 ^^^^^^^^^^^
+UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 0-1: invalid continuation byte
+2025-11-24 22:54:00,853 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 22:54:01,708 [INFO] 📦 Chunk ready for TTS (81 chars): 'Ah, the universe speaks through the unexpected anomaly of a `UnicodeDecodeError`.'
+2025-11-24 22:54:01,709 [INFO] 🎤 Sending to TTS #1 (81 chars): 'Ah, the universe speaks through the unexpected anomaly of a `UnicodeDecodeError`.'
+2025-11-24 22:54:01,737 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-24 22:54:03,076 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

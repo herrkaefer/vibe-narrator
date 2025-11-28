@@ -1,0 +1,53 @@
+2025-11-24 11:34:38,097 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+2025-11-24 11:34:39,082 [INFO] 📦 Chunk ready for TTS (27 chars): 'How can I assist you today?'
+2025-11-24 11:34:39,083 [INFO] 🎤 Sending to TTS #1 (27 chars): 'How can I assist you today?'
+2025-11-24 11:34:39,098 [INFO] ✅ LLM streaming complete (7 tokens)
+2025-11-24 11:34:41,119 [INFO]    ✅ Complete MP3 #1: 29568 bytes (from 8 fragments)
+2025-11-24 11:34:41,120 [INFO] 📝 Narrate text:
+> hi
+2025-11-24 11:34:41,615 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-24 11:34:41,616 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-24 11:34:41,651 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-24 11:34:41,759 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-24 11:34:42,453 [INFO]    ✅ Complete MP3 #1: 8064 bytes (from 2 fragments)
+2025-11-24 11:34:42,453 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-24 11:34:43,237 [INFO]    ✅ Complete MP3 #2: 24960 bytes (from 7 fragments)
+2025-11-24 11:34:43,238 [INFO] 📝 Narrate text:
+>
+2025-11-24 11:34:43,710 [INFO] 📦 Chunk ready for TTS (9 chars): 'Hi there!'
+2025-11-24 11:34:43,710 [INFO] 🎤 Sending to TTS #1 (9 chars): 'Hi there!'
+2025-11-24 11:34:43,772 [INFO] 📦 Chunk ready for TTS (26 chars): ' How can I help you today?'
+2025-11-24 11:34:43,783 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 11:34:44,401 [INFO]    ✅ Complete MP3 #1: 12288 bytes (from 3 fragments)
+2025-11-24 11:34:44,401 [INFO] 🎤 Sending to TTS #2 (26 chars): ' How can I help you today?'
+2025-11-24 11:34:45,321 [INFO]    ✅ Complete MP3 #2: 19968 bytes (from 5 fragments)
+2025-11-24 11:34:45,322 [INFO] 📝 Narrate text:
+/quit
+2025-11-24 11:34:46,388 [INFO] 📦 Chunk ready for TTS (54 chars): 'It sounds like you might want to end our conversation.'
+2025-11-24 11:34:46,389 [INFO] 🎤 Sending to TTS #1 (54 chars): 'It sounds like you might want to end our conversation.'
+2025-11-24 11:34:46,467 [INFO] 📦 Chunk ready for TTS (61 chars): " If there's anything else you need, feel free to let me know!"
+2025-11-24 11:34:46,467 [INFO] ✅ LLM streaming complete (25 tokens)
+2025-11-24 11:34:47,264 [INFO]    ✅ Complete MP3 #1: 47232 bytes (from 12 fragments)
+2025-11-24 11:34:47,265 [INFO] 🎤 Sending to TTS #2 (61 chars): " If there's anything else you need, feel free to let me know!"
+2025-11-24 11:34:48,230 [INFO]    ✅ Complete MP3 #2: 57600 bytes (from 15 fragments)
+2025-11-24 11:34:48,232 [INFO] 📝 Narrate text:
+👋 Goodbye!
+2025-11-24 11:34:49,139 [INFO] 📦 Chunk ready for TTS (8 chars): 'Goodbye!'
+2025-11-24 11:34:49,140 [INFO] 🎤 Sending to TTS #1 (8 chars): 'Goodbye!'
+2025-11-24 11:34:49,160 [INFO] 📦 Chunk ready for TTS (11 chars): ' Take care!'
+2025-11-24 11:34:49,167 [INFO] ✅ LLM streaming complete (6 tokens)
+2025-11-24 11:34:50,133 [INFO]    ✅ Complete MP3 #1: 11520 bytes (from 3 fragments)
+2025-11-24 11:34:50,133 [INFO] 🎤 Sending to TTS #2 (11 chars): ' Take care!'
+2025-11-24 11:34:50,691 [INFO]    ✅ Complete MP3 #2: 13056 bytes (from 4 fragments)
+2025-11-24 11:38:43,279 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

@@ -1,0 +1,86 @@
+2025-11-24 23:08:01,292 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+
+> hi
+2025-11-24 23:08:01,292 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:02,934 [INFO] 📦 Chunk ready for TTS (51 chars): 'Ah, greetings, fellow traveler on the path of code.'
+2025-11-24 23:08:02,937 [INFO] 🎤 Sending to TTS #1 (51 chars): 'Ah, greetings, fellow traveler on the path of code.'
+2025-11-24 23:08:02,950 [INFO] ✅ LLM streaming complete (18 tokens)
+2025-11-24 23:08:02,950 [INFO] 📦 Final chunk for TTS (23 chars): ' How may I guide you on'
+2025-11-24 23:08:04,307 [INFO]    ✅ Complete MP3 #1: 81792 bytes (from 20 fragments)
+2025-11-24 23:08:04,309 [INFO] 🎤 Sending to TTS #2 (23 chars): ' How may I guide you on'
+2025-11-24 23:08:05,166 [INFO]    ✅ Complete MP3 #2: 40320 bytes (from 10 fragments)
+2025-11-24 23:08:05,166 [INFO] ✅ Narration complete, sending result response with id=1764047281291
+2025-11-24 23:08:05,167 [INFO] ✅ Result response sent
+2025-11-24 23:08:05,167 [INFO] 📝 Narrate text:
+>
+2025-11-24 23:08:05,167 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:05,595 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 23:08:05,595 [INFO] ✅ Narration complete, sending result response with id=1764047283752
+2025-11-24 23:08:05,595 [INFO] ✅ Result response sent
+2025-11-24 23:08:10,841 [INFO] 📝 Narrate text:
+how ar eyou?
+2025-11-24 23:08:10,841 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:11,570 [INFO] 📦 Chunk ready for TTS (58 chars): 'Ah, how wondrous it is to reflect upon the state of being.'
+2025-11-24 23:08:11,570 [INFO] 🎤 Sending to TTS #1 (58 chars): 'Ah, how wondrous it is to reflect upon the state of being.'
+2025-11-24 23:08:11,614 [INFO] ✅ LLM streaming complete (18 tokens)
+2025-11-24 23:08:11,614 [INFO] 📦 Final chunk for TTS (14 chars): ' Like a stream'
+2025-11-24 23:08:12,834 [INFO]    ✅ Complete MP3 #1: 89088 bytes (from 22 fragments)
+2025-11-24 23:08:12,835 [INFO] 🎤 Sending to TTS #2 (14 chars): ' Like a stream'
+2025-11-24 23:08:13,925 [INFO]    ✅ Complete MP3 #2: 37632 bytes (from 10 fragments)
+2025-11-24 23:08:13,926 [INFO] ✅ Narration complete, sending result response with id=1764047290841
+2025-11-24 23:08:13,926 [INFO] ✅ Result response sent
+2025-11-24 23:08:14,435 [INFO] 📝 Narrate text:
+>
+2025-11-24 23:08:14,435 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:14,911 [INFO] ✅ LLM streaming complete (0 tokens)
+2025-11-24 23:08:14,911 [INFO] ✅ Narration complete, sending result response with id=1764047294435
+2025-11-24 23:08:14,911 [INFO] ✅ Result response sent
+2025-11-24 23:08:19,065 [INFO] 📝 Narrate text:
+better?
+2025-11-24 23:08:19,065 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:19,972 [INFO] 📦 Chunk ready for TTS (51 chars): 'Ah, the word "better" gently beckons contemplation.'
+2025-11-24 23:08:19,973 [INFO] 🎤 Sending to TTS #1 (51 chars): 'Ah, the word "better" gently beckons contemplation.'
+2025-11-24 23:08:20,016 [INFO] ✅ LLM streaming complete (18 tokens)
+2025-11-24 23:08:20,016 [INFO] 📦 Final chunk for TTS (34 chars): ' Improvement is a tranquil stream,'
+2025-11-24 23:08:21,403 [INFO]    ✅ Complete MP3 #1: 94464 bytes (from 24 fragments)
+2025-11-24 23:08:21,404 [INFO] 🎤 Sending to TTS #2 (34 chars): ' Improvement is a tranquil stream,'
+2025-11-24 23:08:22,273 [INFO]    ✅ Complete MP3 #2: 51456 bytes (from 13 fragments)
+2025-11-24 23:08:22,274 [INFO] ✅ Narration complete, sending result response with id=1764047299065
+2025-11-24 23:08:22,274 [INFO] ✅ Result response sent
+2025-11-24 23:08:22,598 [INFO] 📝 Narrate text:
+> 、   /ex
+2025-11-24 23:08:22,598 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:23,713 [INFO] 📦 Chunk ready for TTS (67 chars): 'Ah, it seems we find ourselves in the quiet space between thoughts.'
+2025-11-24 23:08:23,713 [INFO] 🎤 Sending to TTS #1 (67 chars): 'Ah, it seems we find ourselves in the quiet space between thoughts.'
+2025-11-24 23:08:23,781 [INFO] ✅ LLM streaming complete (18 tokens)
+2025-11-24 23:08:23,781 [INFO] 📦 Final chunk for TTS (18 chars): ' Perhaps this is a'
+2025-11-24 23:08:25,043 [INFO]    ✅ Complete MP3 #1: 90624 bytes (from 23 fragments)
+2025-11-24 23:08:25,045 [INFO] 🎤 Sending to TTS #2 (18 chars): ' Perhaps this is a'
+2025-11-24 23:08:26,175 [INFO]    ✅ Complete MP3 #2: 28032 bytes (from 7 fragments)
+2025-11-24 23:08:26,176 [INFO] ✅ Narration complete, sending result response with id=1764047302598
+2025-11-24 23:08:26,176 [INFO] ✅ Result response sent
+2025-11-24 23:08:26,177 [INFO] 📝 Narrate text:
+it
+👋 Goodbye!
+2025-11-24 23:08:26,177 [INFO] 🎭 Character: The Enlightened Zen Developer (id: zen_developer)
+2025-11-24 23:08:26,830 [INFO] 📦 Chunk ready for TTS (43 chars): 'Ah, the brevity of what is and what is not.'
+2025-11-24 23:08:26,831 [INFO] 🎤 Sending to TTS #1 (43 chars): 'Ah, the brevity of what is and what is not.'
+2025-11-24 23:08:26,913 [INFO] ✅ LLM streaming complete (18 tokens)
+2025-11-24 23:08:26,913 [INFO] 📦 Final chunk for TTS (19 chars): ' Let us be at peace'
+2025-11-24 23:08:28,021 [INFO]    ✅ Complete MP3 #1: 83328 bytes (from 21 fragments)
+2025-11-24 23:08:28,023 [INFO] 🎤 Sending to TTS #2 (19 chars): ' Let us be at peace'
+2025-11-24 23:08:28,743 [INFO]    ✅ Complete MP3 #2: 34560 bytes (from 9 fragments)
+2025-11-24 23:08:28,747 [INFO] ✅ Narration complete, sending result response with id=1764047302859
+2025-11-24 23:08:28,747 [INFO] ✅ Result response sent
+2025-11-24 23:08:40,912 [INFO] 🛑 MCP Server shutting down (signal: SIGTERM)

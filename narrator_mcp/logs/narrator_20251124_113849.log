@@ -1,0 +1,35 @@
+2025-11-24 11:38:50,803 [INFO] 📝 Narrate text:
+🎤 Vibe Narrator Chat
+==================================================
+
+Type your messages and press Enter.
+The AI will respond via audio (not shown in terminal).
+
+Commands:
+  /quit or /exit - Exit the chat
+  /clear - Clear conversation history (not implemented yet)
+
+==================================================
+2025-11-24 11:38:51,978 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-24 11:38:51,979 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-24 11:38:52,147 [INFO] 📦 Chunk ready for TTS (26 chars): ' How can I help you today?'
+2025-11-24 11:38:52,151 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-24 11:38:52,874 [INFO]    ✅ Complete MP3 #1: 13056 bytes (from 4 fragments)
+2025-11-24 11:38:52,874 [INFO] 🎤 Sending to TTS #2 (26 chars): ' How can I help you today?'
+2025-11-24 11:38:53,927 [INFO]    ✅ Complete MP3 #2: 26496 bytes (from 7 fragments)
+2025-11-24 11:38:53,927 [INFO] 📝 Narrate text:
+> /quit
+2025-11-24 11:38:55,207 [INFO] 📦 Chunk ready for TTS (55 chars): 'If you need help with something else, feel free to ask!'
+2025-11-24 11:38:55,207 [INFO] 🎤 Sending to TTS #1 (55 chars): 'If you need help with something else, feel free to ask!'
+2025-11-24 11:38:55,218 [INFO] ✅ LLM streaming complete (13 tokens)
+2025-11-24 11:38:56,298 [INFO]    ✅ Complete MP3 #1: 65664 bytes (from 17 fragments)
+2025-11-24 11:38:56,317 [INFO] 📝 Narrate text:
+👋 Goodbye!
+2025-11-24 11:38:56,927 [INFO] 📦 Chunk ready for TTS (8 chars): 'Goodbye!'
+2025-11-24 11:38:56,927 [INFO] 🎤 Sending to TTS #1 (8 chars): 'Goodbye!'
+2025-11-24 11:38:57,037 [INFO] 📦 Chunk ready for TTS (11 chars): ' Take care!'
+2025-11-24 11:38:57,038 [INFO] ✅ LLM streaming complete (6 tokens)
+2025-11-24 11:38:57,597 [INFO]    ✅ Complete MP3 #1: 11520 bytes (from 3 fragments)
+2025-11-24 11:38:57,597 [INFO] 🎤 Sending to TTS #2 (11 chars): ' Take care!'
+2025-11-24 11:38:58,404 [INFO]    ✅ Complete MP3 #2: 12288 bytes (from 3 fragments)
+2025-11-24 11:40:37,924 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

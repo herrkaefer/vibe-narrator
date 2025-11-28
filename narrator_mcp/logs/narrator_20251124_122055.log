@@ -1,0 +1,38 @@
+2025-11-24 12:20:57,285 [INFO] 📝 Narrate text:
+› Write tests for @filename 100% context left · ? for shortcuts
+╭────────────────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.63.0)                              │
+│                                                        │
+│ model:     gpt-5.1-codex-max medium   /model to change │
+│ directory: ~/dev-local/vibe-narrator                   │
+╰────────────────────────────────────────────────────────╯
+
+  To get started, describe a task or try one of these commands:
+
+  /init - create an AGENTS.md file with instructions for Codex
+  /status - show current session configuration
+  /approvals - choose what Codex can do without approval
+  /model - choose what model and reasoning effort to use
+2025-11-24 12:20:59,278 [INFO] ✅ LLM streaming complete (10 tokens)
+2025-11-24 12:20:59,279 [INFO] 📦 Final chunk for TTS (54 chars): '"User requests writing tests for a specific filename."'
+2025-11-24 12:20:59,279 [INFO] 🎤 Sending to TTS #1 (54 chars): '"User requests writing tests for a specific filename."'
+2025-11-24 12:21:00,702 [INFO]    ✅ Complete MP3 #1: 61056 bytes (from 15 fragments)
+2025-11-24 12:21:00,703 [INFO] ✅ Narration complete, sending result response with id=1764008457284
+2025-11-24 12:21:00,704 [INFO] ✅ Result response sent
+2025-11-24 12:21:01,445 [INFO] 📝 Narrate text:
+/review - review any changes and find issues
+2025-11-24 12:21:02,722 [INFO] ✅ LLM streaming complete (11 tokens)
+2025-11-24 12:21:02,722 [INFO] 📦 Final chunk for TTS (55 chars): '"User requests a review of changes to identify issues."'
+2025-11-24 12:21:02,722 [INFO] 🎤 Sending to TTS #1 (55 chars): '"User requests a review of changes to identify issues."'
+2025-11-24 12:21:03,681 [INFO]    ✅ Complete MP3 #1: 63360 bytes (from 16 fragments)
+2025-11-24 12:21:03,682 [INFO] ✅ Narration complete, sending result response with id=1764008461445
+2025-11-24 12:21:03,682 [INFO] ✅ Result response sent
+2025-11-24 12:21:11,396 [INFO] 📝 Narrate text:
+› / /model      choose what model and reasoning effort to use/approvalschoose what Codex can do without approval/reviewreview my current changes and find issues/newstart a new chat during a conversation/initcreate an AGENTS.md file with instructions for Codex/compactsummarize conversation to prevent hitting the context limit/undoask Codex to undo a turn/diffshow git diff (including untracked files) › /e /exit      exit Codex/feedbacksend logs to maintainers/mentionmention a file/modelchoose what model and reasoning effort to use/newstart a new chat during a conversation/reviewreview my current changes and find issues › /ex /exit  exit Codexit
+2025-11-24 12:21:14,680 [INFO] ✅ LLM streaming complete (1 tokens)
+2025-11-24 12:21:14,680 [INFO] 📦 Final chunk for TTS (2 chars): '""'
+2025-11-24 12:21:14,680 [INFO] 🎤 Sending to TTS #1 (2 chars): '""'
+2025-11-24 12:21:15,737 [INFO]    ✅ Complete MP3 #1: 32256 bytes (from 8 fragments)
+2025-11-24 12:21:15,737 [INFO] ✅ Narration complete, sending result response with id=1764008471395
+2025-11-24 12:21:15,737 [INFO] ✅ Result response sent
+2025-11-24 12:21:17,927 [INFO] 🛑 MCP Server shutting down (signal: SIGTERM)

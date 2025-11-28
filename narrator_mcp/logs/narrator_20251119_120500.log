@@ -1,0 +1,12 @@
+2025-11-19 12:05:01,183 [INFO] 📝 Narrate text:
+Testing the new logging features\!
+2025-11-19 12:05:02,821 [INFO] 📦 Chunk ready for TTS (62 chars): "It sounds like you're working on testing new logging features."
+2025-11-19 12:05:02,822 [INFO] 🎤 Sending to TTS #1 (62 chars): "It sounds like you're working on testing new logging features."
+2025-11-19 12:05:03,246 [INFO] 📦 Chunk ready for TTS (131 chars): ' If you have any specific questions or need guidance on how to implement or test these features, feel free to provide more details.'
+2025-11-19 12:05:03,341 [INFO] 📦 Chunk ready for TTS (18 chars): " I'm here to help!"
+2025-11-19 12:05:03,350 [INFO] ✅ LLM streaming complete (41 tokens)
+2025-11-19 12:05:04,001 [INFO]    ✅ Complete MP3 #1: 61056 bytes (from 15 fragments)
+2025-11-19 12:05:04,003 [INFO] 🎤 Sending to TTS #2 (131 chars): ' If you have any specific questions or need guidance on how to implement or test these features, feel free to provide more details.'
+2025-11-19 12:05:05,614 [INFO]    ✅ Complete MP3 #2: 124032 bytes (from 31 fragments)
+2025-11-19 12:05:05,617 [INFO] 🎤 Sending to TTS #3 (18 chars): " I'm here to help!"
+2025-11-19 12:05:06,405 [INFO]    ✅ Complete MP3 #3: 19200 bytes (from 5 fragments)

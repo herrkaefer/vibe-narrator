@@ -1,0 +1,10 @@
+2025-11-28 01:28:41,209 [INFO] 🚀 Narrator MCP Server initialized
+2025-11-28 01:28:41,210 [INFO] 📝 Narrate logs: /Users/herrk/dev-local/vibe-narrator/narrator-mcp/logs/narrator_20251128_012841.log
+2025-11-28 01:28:41,261 [INFO] StreamableHTTP session manager started
+2025-11-28 01:28:41,682 [INFO] Created new transport with session ID: 69642121fa6e49568a07b7e1a139c355
+2025-11-28 01:28:41,735 [INFO] Created new transport with session ID: d6cdae35e41f485aace9c428720f0dec
+2025-11-28 01:28:41,757 [INFO] Processing request of type CallToolRequest
+2025-11-28 01:28:41,759 [INFO] ✅ Session configured: model=gpt-4o-mini, voice=qwaVDEGNsBllYcZO1ZOJ, mode=narration, character=overconfident_senior_developer, llm_provider=OpenAI, tts_provider=elevenlabs
+2025-11-28 01:28:41,773 [INFO] Processing request of type ListToolsRequest
+2025-11-28 01:28:42,147 [INFO] Terminating session: d6cdae35e41f485aace9c428720f0dec
+2025-11-28 01:28:42,269 [INFO] StreamableHTTP session manager shutting down

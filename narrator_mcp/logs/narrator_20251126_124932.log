@@ -1,0 +1,65 @@
+2025-11-26 12:49:32,055 [INFO] 🚀 Narrator MCP Server initialized
+2025-11-26 12:49:32,055 [INFO] 📝 Narrate logs: /Users/herrk/dev-local/vibe-narrator/narrator-mcp/logs/narrator_20251126_124932.log
+2025-11-26 12:49:32,077 [INFO] Processing request of type ListToolsRequest
+2025-11-26 12:49:32,089 [INFO] Processing request of type ListPromptsRequest
+2025-11-26 12:49:32,092 [INFO] Processing request of type ListResourcesRequest
+2025-11-26 12:49:43,793 [INFO] Processing request of type CallToolRequest
+2025-11-26 12:49:43,794 [INFO] ✅ Session configured: model=gpt-4o-mini, voice=nova, mode=narration, character=default, provider=OpenAI
+2025-11-26 12:49:49,608 [INFO] Processing request of type CallToolRequest
+2025-11-26 12:49:49,609 [INFO] 🔍 Config status requested
+2025-11-26 12:50:44,898 [INFO] Processing request of type ListToolsRequest
+2025-11-26 12:51:20,214 [INFO] Processing request of type CallToolRequest
+2025-11-26 12:51:20,216 [INFO] 🎧 Narrate request received
+2025-11-26 12:51:20,216 [INFO] 📝 Narrate text:
+Today is very windy. We'll go watch a movie!
+2025-11-26 12:51:20,216 [INFO] 📝 Narrate text:
+Today is very windy. We'll go watch a movie!
+2025-11-26 12:51:23,147 [INFO] 📦 Chunk ready for TTS (47 chars): '…uh, sounds fun… I guess… I’ll go… reluctantly.'
+2025-11-26 12:51:23,147 [INFO] 📦 Chunk ready for TTS (47 chars): '…uh, sounds fun… I guess… I’ll go… reluctantly.'
+2025-11-26 12:51:23,148 [INFO] 🎤 Sending to TTS #1 (47 chars): '…uh, sounds fun… I guess… I’ll go… reluctantly.'
+2025-11-26 12:51:23,148 [INFO] 🎤 Sending to TTS #1 (47 chars): '…uh, sounds fun… I guess… I’ll go… reluctantly.'
+2025-11-26 12:51:23,168 [INFO] ✅ LLM streaming complete (15 tokens)
+2025-11-26 12:51:23,168 [INFO] ✅ LLM streaming complete (15 tokens)
+2025-11-26 12:51:26,031 [INFO]    ✅ Complete MP3 #1: 103296 bytes (from 26 fragments)
+2025-11-26 12:51:26,031 [INFO]    ✅ Complete MP3 #1: 103296 bytes (from 26 fragments)
+2025-11-26 12:51:26,032 [INFO] ✅ Narration complete: 47 chars, 103296 bytes audio
+2025-11-26 12:51:50,816 [INFO] Processing request of type ListToolsRequest
+2025-11-26 12:58:48,151 [INFO] Processing request of type ListToolsRequest
+2025-11-26 12:58:49,894 [INFO] Processing request of type ListToolsRequest
+2025-11-26 13:01:50,742 [INFO] Processing request of type ListToolsRequest
+2025-11-26 13:01:51,759 [INFO] Processing request of type CallToolRequest
+2025-11-26 13:01:51,766 [INFO] 🎧 Narrate request received
+2025-11-26 13:01:51,767 [INFO] 📝 Narrate text:
+好的，我已经创建了实时叙述脚本。现在我将把我的回复实时发送给 narrator-mcp 并播放。这样你就可以听到我的回复了。
+2025-11-26 13:01:51,767 [INFO] 📝 Narrate text:
+好的，我已经创建了实时叙述脚本。现在我将把我的回复实时发送给 narrator-mcp 并播放。这样你就可以听到我的回复了。
+2025-11-26 13:01:53,910 [INFO] 📦 Chunk ready for TTS (18 chars): '哦，听起来…挺复杂的…希望能顺利吧。'
+2025-11-26 13:01:53,910 [INFO] 📦 Chunk ready for TTS (18 chars): '哦，听起来…挺复杂的…希望能顺利吧。'
+2025-11-26 13:01:53,912 [INFO] 🎤 Sending to TTS #1 (18 chars): '哦，听起来…挺复杂的…希望能顺利吧。'
+2025-11-26 13:01:53,912 [INFO] 🎤 Sending to TTS #1 (18 chars): '哦，听起来…挺复杂的…希望能顺利吧。'
+2025-11-26 13:01:53,929 [INFO] ✅ LLM streaming complete (15 tokens)
+2025-11-26 13:01:53,929 [INFO] ✅ LLM streaming complete (15 tokens)
+2025-11-26 13:01:56,434 [INFO]    ✅ Complete MP3 #1: 81792 bytes (from 20 fragments)
+2025-11-26 13:01:56,434 [INFO]    ✅ Complete MP3 #1: 81792 bytes (from 20 fragments)
+2025-11-26 13:01:56,435 [INFO] ✅ Narration complete: 18 chars, 81792 bytes audio
+2025-11-26 13:02:08,769 [INFO] Processing request of type CallToolRequest
+2025-11-26 13:02:08,769 [INFO] 🎧 Narrate request received
+2025-11-26 13:02:08,770 [INFO] 📝 Narrate text:
+好的，我已经创建了实时叙述脚本。现在我将把我的回复实时发送给 narrator-mcp 并播放。这样你就可以听到我的回复了。
+2025-11-26 13:02:08,770 [INFO] 📝 Narrate text:
+好的，我已经创建了实时叙述脚本。现在我将把我的回复实时发送给 narrator-mcp 并播放。这样你就可以听到我的回复了。
+2025-11-26 13:02:09,695 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-26 13:02:09,695 [INFO] ✅ LLM streaming complete (16 tokens)
+2025-11-26 13:02:09,695 [INFO] 📦 Final chunk for TTS (19 chars): '哦…好吧，听起来真是个…累人的任务… '
+2025-11-26 13:02:09,695 [INFO] 📦 Final chunk for TTS (19 chars): '哦…好吧，听起来真是个…累人的任务… '
+2025-11-26 13:02:09,695 [INFO] 🎤 Sending to TTS #1 (19 chars): '哦…好吧，听起来真是个…累人的任务… '
+2025-11-26 13:02:09,695 [INFO] 🎤 Sending to TTS #1 (19 chars): '哦…好吧，听起来真是个…累人的任务… '
+2025-11-26 13:02:11,613 [INFO]    ✅ Complete MP3 #1: 78720 bytes (from 20 fragments)
+2025-11-26 13:02:11,613 [INFO]    ✅ Complete MP3 #1: 78720 bytes (from 20 fragments)
+2025-11-26 13:02:11,613 [INFO] ✅ Narration complete: 19 chars, 78720 bytes audio
+2025-11-26 13:03:42,149 [INFO] Processing request of type CallToolRequest
+2025-11-26 13:03:42,149 [INFO] 🔍 Config status requested
+2025-11-26 13:04:50,837 [INFO] Processing request of type ListToolsRequest
+2025-11-26 13:04:52,408 [INFO] Processing request of type ListToolsRequest
+2025-11-26 16:18:15,783 [INFO] Processing request of type ListToolsRequest
+2025-11-26 16:27:25,423 [INFO] 🛑 Narrator MCP Server shutting down

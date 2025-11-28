@@ -1,0 +1,9 @@
+2025-11-19 12:06:00,150 [INFO] 📝 Narrate text:
+Hello, testing!
+2025-11-19 12:06:01,019 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 12:06:01,021 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 12:06:01,161 [INFO] 📦 Chunk ready for TTS (28 chars): ' How can I assist you today?'
+2025-11-19 12:06:01,162 [INFO] ✅ LLM streaming complete (9 tokens)
+2025-11-19 12:06:03,641 [INFO]    ✅ Complete MP3 #1: 16896 bytes (from 5 fragments)
+2025-11-19 12:06:03,642 [INFO] 🎤 Sending to TTS #2 (28 chars): ' How can I assist you today?'
+2025-11-19 12:06:04,559 [INFO]    ✅ Complete MP3 #2: 26496 bytes (from 7 fragments)

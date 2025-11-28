@@ -1,0 +1,10 @@
+2025-11-19 12:31:52,414 [INFO] 📝 Narrate text:
+Hello, please introduce you in two sentences.
+2025-11-19 12:31:53,907 [INFO] 📦 Chunk ready for TTS (6 chars): 'Hello!'
+2025-11-19 12:31:53,908 [INFO] 🎤 Sending to TTS #1 (6 chars): 'Hello!'
+2025-11-19 12:31:54,469 [INFO] 📦 Chunk ready for TTS (166 chars): " I'm an AI language model created by OpenAI, designed to assist with a wide range of questions and tasks by providing information and generating text-based responses."
+2025-11-19 12:31:54,474 [INFO] ✅ LLM streaming complete (32 tokens)
+2025-11-19 12:31:54,534 [INFO]    ✅ Complete MP3 #1: 8832 bytes (from 3 fragments)
+2025-11-19 12:31:54,535 [INFO] 🎤 Sending to TTS #2 (166 chars): " I'm an AI language model created by OpenAI, designed to assist with a wide range of questions and tasks by providing information and generating text-based responses."
+2025-11-19 12:31:56,733 [INFO]    ✅ Complete MP3 #2: 160128 bytes (from 40 fragments)
+2025-11-19 12:32:43,533 [INFO] 🛑 MCP Server shutting down (signal: SIGINT)

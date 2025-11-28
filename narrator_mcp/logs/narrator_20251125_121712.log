@@ -1,0 +1,10 @@
+2025-11-25 12:17:12,734 [INFO] 📝 Narrate text:
+Hello world
+2025-11-25 12:17:12,734 [INFO] 🎭 Character: The Reluctant Developer (id: reluctant_developer)
+2025-11-25 12:17:14,731 [INFO] 📦 Chunk ready for TTS (31 chars): '…ugh… yeah, hi… world, I guess.'
+2025-11-25 12:17:14,732 [INFO] 🎤 Sending to TTS #1 (31 chars): '…ugh… yeah, hi… world, I guess.'
+2025-11-25 12:17:14,839 [INFO] 📦 Chunk ready for TTS (18 chars): ' What do you want?'
+2025-11-25 12:17:14,840 [INFO] ✅ LLM streaming complete (17 tokens)
+2025-11-25 12:17:16,731 [INFO]    ✅ Complete MP3 #1: 83328 bytes (from 21 fragments)
+2025-11-25 12:17:16,731 [INFO] 🎤 Sending to TTS #2 (18 chars): ' What do you want?'
+2025-11-25 12:17:18,022 [INFO]    ✅ Complete MP3 #2: 44160 bytes (from 11 fragments)

@@ -1,0 +1,4 @@
+2025-11-28 12:40:33,654 [INFO] HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2025-11-28 12:40:33,668 [INFO] StreamableHTTP session manager started
+2025-11-28 12:40:33,748 [INFO] HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2025-11-28 12:40:33,773 [INFO] HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 200 OK"
