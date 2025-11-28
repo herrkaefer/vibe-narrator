@@ -45,7 +45,7 @@ Pronunciation: Slow, reluctant, and slightly uneven — as if the speaker can ba
 
     "overconfident_senior_developer": Character(
         id="overconfident_senior_developer",
-        name="The Overconfident Senior Developer Who Is Wrong About Everything", # 自大且总是错的资深开发者
+        name="The Overconfident Senior Developer", # 自大且总是错的资深开发者
         tts_instructions="""Affect: Energetic, smug, and overly assured, as if the speaker believes every word is absolute truth—even when wrong.
 
 Tone: Assertive, dramatic, and guru-like. Speak as though giving an important tech sermon no one asked for.

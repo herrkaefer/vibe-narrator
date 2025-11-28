@@ -19,23 +19,54 @@ from narrator_mcp.session import Session, DEFAULT_MODEL, DEFAULT_VOICE, DEFAULT_
 from narrator_mcp.chunker import Chunker
 from narrator_mcp.tts import detect_tts_provider
 
-# Get API keys from environment
+# Get API keys from environment (provider-specific)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_TTS_VOICE = os.getenv("OPENAI_TTS_VOICE", "nova")  # Default to "nova"
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_TTS_VOICE = os.getenv("ELEVENLABS_TTS_VOICE", "")  # Default empty, will be set from voice selection
 
 # Get available characters
 CHARACTERS = get_characters_list()
 CHARACTER_CHOICES = {f"{char['name']}": char['id'] for char in CHARACTERS}
 DEFAULT_CHARACTER = "The Reluctant Developer"
 
-# Voice options (OpenAI TTS voices)
-VOICE_OPTIONS = ["nova", "alloy", "echo", "fable", "onyx", "shimmer"]
+# Voice options (OpenAI TTS voices) - hardcoded list from OpenAI documentation
+# Available voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer
+VOICE_OPTIONS = ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]
 
 # TTS Provider options
 TTS_PROVIDER_OPTIONS = ["OpenAI TTS", "ElevenLabs TTS"]
 
-# Model options
-MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
+# ElevenLabs premade voices (hardcoded from public API)
+ELEVENLABS_PREMADE_VOICES = [
+    {"name": "Roger", "voice_id": "CwhRBWXzGAHq8TQ4Fs17"},
+    {"name": "Sarah", "voice_id": "EXAVITQu4vr4xnSDxMaL"},
+    {"name": "Laura", "voice_id": "FGY2WhTYpPnrIDTdsKH5"},
+    {"name": "Charlie", "voice_id": "IKne3meq5aSn9XLyUdCD"},
+    {"name": "George", "voice_id": "JBFqnCBsd6RMkjVDRZzb"},
+    {"name": "Callum", "voice_id": "N2lVS1w4EtoT3dr4eOWO"},
+    {"name": "River", "voice_id": "SAz9YHcvj6GT2YYXdXww"},
+    {"name": "Harry", "voice_id": "SOYHLrjzK2X1ezoPC6cr"},
+    {"name": "Liam", "voice_id": "TX3LPaxmHKxFdv7VOQHJ"},
+    {"name": "Alice", "voice_id": "Xb7hH8MSUJpSbSDYk0k2"},
+    {"name": "Matilda", "voice_id": "XrExE9yKIg1WjnnlVkGX"},
+    {"name": "Will", "voice_id": "bIHbv24MWmeRgasZH58o"},
+    {"name": "Jessica", "voice_id": "cgSgspJ2msm6clMCkdW9"},
+    {"name": "Eric", "voice_id": "cjVigY5qzO86Huf0OWal"},
+    {"name": "Chris", "voice_id": "iP95p4xoKVk53GoZ742B"},
+    {"name": "Brian", "voice_id": "nPczCjzI2devNBz1zQrb"},
+    {"name": "Daniel", "voice_id": "onwK4e9ZLuTAKqWW03F9"},
+    {"name": "Lily", "voice_id": "pFZP5JQG7iQjIQuC4Bku"},
+    {"name": "Adam", "voice_id": "pNInz6obpgDQGcFmaJgB"},
+    {"name": "Bill", "voice_id": "pqHfZKP75CvOlQylNhV4"},
+]
+
+# Cache for ElevenLabs voices (for custom voices from API)
+_elevenlabs_voices: list[dict] = []
+_elevenlabs_voice_choices: list[str] = []
+
+# Model options - only GPT-4 and GPT-5 series
+MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-5", "gpt-5.1"]
 
 # Global session state for MCP tools
 _global_session = Session()
@@ -146,6 +177,10 @@ async def narrate_text(
     tts_provider: str | None = None,
     llm_api_key: str | None = None,
     tts_api_key: str | None = None,
+    openai_tts_api_key: str | None = None,
+    openai_tts_voice: str | None = None,
+    elevenlabs_tts_api_key: str | None = None,
+    elevenlabs_tts_voice: str | None = None,
 ) -> tuple[str | None, str]:
     """Generate narrated speech with personality using LLM and TTS.
 
@@ -185,6 +220,8 @@ async def narrate_text(
     final_mode = "narration"  # Fixed to narration mode for UI
     final_character_id = None
 
+    # Note: Voice ID extraction is now handled in provider-specific sections above
+
     # Handle character: can be character name (from UI) or character ID (from MCP)
     if character:
         # Check if it's a character name (from UI dropdown) or character ID (from MCP)
@@ -197,7 +234,7 @@ async def narrate_text(
         # Use session default
         final_character_id = _global_session.character or "reluctant_developer"
 
-    # Determine TTS provider and API key
+    # Determine TTS provider and API key (use provider-specific parameters if provided)
     final_tts_api_key = tts_api_key
     tts_provider_value = None
 
@@ -214,15 +251,44 @@ async def narrate_text(
         # Use session default
         tts_provider_value = _global_session.tts_provider
 
-    # Determine TTS API key
-    if not final_tts_api_key:
-        if tts_provider_value == "elevenlabs":
-            final_tts_api_key = _global_session.tts_api_key or ELEVENLABS_API_KEY
-            if not final_tts_api_key:
-                return None, "Error: ELEVENLABS_API_KEY not provided. Please configure using configure tool or set environment variable."
-        else:
+    # Use provider-specific API keys and voices if provided (from UI)
+    if tts_provider_value == "elevenlabs":
+        # Use ElevenLabs-specific parameters
+        # API key comes from environment variable only
+        final_tts_api_key = ELEVENLABS_API_KEY or _global_session.tts_api_key
+
+        if elevenlabs_tts_voice and elevenlabs_tts_voice.strip():
+            # Convert voice name to voice_id
+            voice_name = elevenlabs_tts_voice.strip()
+            voice_id = get_elevenlabs_voice_id_by_name(voice_name)
+            if voice_id:
+                final_voice = voice_id
+            else:
+                # If not found in premade voices, assume it's already a voice_id
+                final_voice = voice_name
+        elif not final_voice:
+            # Try to get voice_id from environment variable (if it's a name, convert it)
+            env_voice = ELEVENLABS_TTS_VOICE or _global_session.voice
+            if env_voice:
+                voice_id = get_elevenlabs_voice_id_by_name(env_voice)
+                final_voice = voice_id if voice_id else env_voice
+            else:
+                final_voice = None
+
+        if not final_tts_api_key:
+            return None, "Error: ELEVENLABS_API_KEY not provided. Please set it in environment variables."
+    else:
+        # Use OpenAI-specific parameters (default)
+        if openai_tts_api_key and openai_tts_api_key.strip():
+            final_tts_api_key = openai_tts_api_key.strip()
+        elif not final_tts_api_key:
             # Use LLM API key for TTS if TTS key not provided
             final_tts_api_key = _global_session.tts_api_key or final_llm_api_key
+
+        if openai_tts_voice and openai_tts_voice.strip():
+            final_voice = openai_tts_voice.strip()
+        elif not final_voice:
+            final_voice = OPENAI_TTS_VOICE or _global_session.voice
 
     # Auto-detect TTS provider if not explicitly set
     if not tts_provider_value and final_tts_api_key:
@@ -280,6 +346,43 @@ def list_characters() -> str:
     return json.dumps({"characters": CHARACTERS})
 
 
+def get_elevenlabs_voice_id_by_name(name: str) -> str | None:
+    """Get ElevenLabs voice_id by name.
+
+    Args:
+        name: Voice name
+
+    Returns:
+        Voice ID if found, None otherwise
+    """
+    for voice in ELEVENLABS_PREMADE_VOICES:
+        if voice['name'] == name:
+            return voice['voice_id']
+    return None
+
+
+def get_elevenlabs_voices() -> tuple[list[str], str]:
+    """Get available ElevenLabs voices.
+
+    Returns premade voices (hardcoded) immediately, no API call needed.
+    Returns only voice names (not IDs) for UI display.
+
+    Returns:
+        Tuple of (voice_names_list, status_message)
+    """
+    global _elevenlabs_voice_choices
+
+    # Use hardcoded premade voices - return only names
+    voice_names = [voice['name'] for voice in ELEVENLABS_PREMADE_VOICES]
+    _elevenlabs_voice_choices = voice_names
+    return voice_names, f"✅ Loaded {len(voice_names)} ElevenLabs premade voices"
+
+
+async def fetch_elevenlabs_voices() -> tuple[list[str], str]:
+    """Async wrapper for get_elevenlabs_voices (for compatibility)."""
+    return get_elevenlabs_voices()
+
+
 # Create the Gradio interface
 with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
     gr.Markdown("# 🎨 Vibe Narrator")
@@ -306,36 +409,85 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
                     gr.Markdown("## ⚙️ Configuration")
 
-                    with gr.Accordion("Style", open=True):
-                        character_dropdown = gr.Dropdown(
-                            label="Character Personality",
-                            choices=list(CHARACTER_CHOICES.keys()),
-                            value=DEFAULT_CHARACTER,
-                            info="Choose the voice personality",
-                        )
+                    gr.Markdown("**Character**")
+                    character_buttons = []
+                    character_state = gr.State(value=DEFAULT_CHARACTER)
 
-                    with gr.Accordion("LLM Model", open=True):
-                        model_dropdown = gr.Dropdown(
-                            label="Model",
-                            choices=MODEL_OPTIONS,
-                            value=DEFAULT_MODEL,
-                            info="GPT model for text generation",
-                        )
+                    # Create buttons for each character
+                    with gr.Row():
+                        for char_name in CHARACTER_CHOICES.keys():
+                            btn = gr.Button(
+                                char_name,
+                                variant="secondary" if char_name != DEFAULT_CHARACTER else "primary",
+                                size="sm",
+                            )
+                            character_buttons.append(btn)
 
-                    with gr.Accordion("TTS (Text-to-Speech)", open=True):
-                        tts_provider_input = gr.Dropdown(
-                            label="TTS Provider",
-                            choices=TTS_PROVIDER_OPTIONS,
-                            value="OpenAI TTS",
-                            info="Choose TTS service provider",
-                        )
+                            # Create click handler for each button
+                            def make_click_handler(name):
+                                def click_handler(current_state):
+                                    # Return updated state and button variants
+                                    updates = [name]  # First output is character_state
+                                    # Then update all button variants
+                                    for char_name in CHARACTER_CHOICES.keys():
+                                        variant = "primary" if char_name == name else "secondary"
+                                        updates.append(gr.Button(variant=variant))
+                                    return updates
+                                return click_handler
 
-                        voice_dropdown = gr.Dropdown(
-                            label="Voice",
-                            choices=VOICE_OPTIONS,
-                            value=DEFAULT_VOICE,
-                            info="TTS voice selection",
-                        )
+                            btn.click(
+                                fn=make_click_handler(char_name),
+                                inputs=[character_state],
+                                outputs=[character_state] + character_buttons,
+                            )
+
+                    model_dropdown = gr.Dropdown(
+                        label="LLM Model",
+                        choices=MODEL_OPTIONS,
+                        value=DEFAULT_MODEL,
+                        info="GPT model for text generation",
+                    )
+
+                    tts_provider_input = gr.Dropdown(
+                        label="TTS Provider",
+                        choices=TTS_PROVIDER_OPTIONS,
+                        value="OpenAI TTS",
+                        info="Choose TTS service provider",
+                    )
+
+                    # Voice dropdown - will be updated based on provider
+                    voice_dropdown_unified = gr.Dropdown(
+                        label="Voice",
+                        choices=VOICE_OPTIONS,
+                        value=OPENAI_TTS_VOICE,
+                        info="TTS voice selection",
+                    )
+
+                    # Hidden groups for status tracking (not visible in UI)
+                    openai_tts_group = gr.Group(visible=False)
+                    elevenlabs_tts_group = gr.Group(visible=False)
+                    elevenlabs_voice_status = gr.Textbox(
+                        label="Voice Status",
+                        value="",
+                        interactive=False,
+                        visible=False,
+                    )
+
+                    # Legacy voice dropdown (hidden, kept for compatibility)
+                    voice_dropdown = gr.Dropdown(
+                        label="Voice",
+                        choices=VOICE_OPTIONS,
+                        value=DEFAULT_VOICE,
+                        info="TTS voice selection",
+                        visible=False,
+                    )
+
+                    voice_status = gr.Textbox(
+                        label="Voice Status",
+                        value="",
+                        interactive=False,
+                        visible=False,
+                    )
 
                     narrate_btn = gr.Button("🎤 Generate Narration", variant="primary", size="lg")
 
@@ -447,17 +599,111 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
             MIT License
             """)
 
+    # Wrapper function for UI that only uses UI inputs
+    async def narrate_text_ui(
+        prompt: str,
+        character: str,
+        voice: str,  # Legacy, not used but kept for compatibility
+        model: str,
+        tts_provider: str,
+        unified_voice: str,
+    ) -> tuple[str | None, str]:
+        """UI wrapper for narrate_text that handles provider-specific inputs."""
+        # Convert empty strings to None
+        voice_val = unified_voice.strip() if unified_voice and unified_voice.strip() else None
+
+        # Determine which provider-specific voice parameter to use
+        openai_voice_val = None
+        elevenlabs_voice_val = None
+
+        if tts_provider == "ElevenLabs TTS":
+            elevenlabs_voice_val = voice_val
+        else:
+            openai_voice_val = voice_val
+
+        return await narrate_text(
+            prompt=prompt,
+            character=character,
+            voice=None,  # Not used, provider-specific voices are used instead
+            model=model,
+            tts_provider=tts_provider,
+            llm_api_key=None,  # Will use environment variable
+            tts_api_key=None,  # Not used, provider-specific keys are used instead
+            openai_tts_api_key=None,  # Will use OPENAI_API_KEY from environment
+            openai_tts_voice=openai_voice_val,
+            elevenlabs_tts_api_key=None,  # Will use ELEVENLABS_API_KEY from environment
+            elevenlabs_tts_voice=elevenlabs_voice_val,
+        )
+
     # Connect the narration handler
     narrate_btn.click(
-        fn=narrate_text,
+        fn=narrate_text_ui,
         inputs=[
             prompt_input,
-            character_dropdown,
-            voice_dropdown,
+            character_state,
+            voice_dropdown,  # Legacy, kept for compatibility but not used
             model_dropdown,
             tts_provider_input,
+            voice_dropdown_unified,
         ],
         outputs=[audio_output, text_output],
+    )
+
+    # Update UI when TTS provider changes and auto-load voices
+    async def async_update_tts_provider(tts_provider: str):
+        """Async update UI when TTS provider changes and auto-load voices if needed."""
+        if tts_provider == "ElevenLabs TTS":
+            # Show ElevenLabs config, hide OpenAI config
+            # Get voices from hardcoded list (no API call needed) - only names
+            voices, status_msg = get_elevenlabs_voices()
+            if voices:
+                return (
+                    gr.Group(visible=False),  # openai_tts_group
+                    gr.Group(visible=True),   # elevenlabs_tts_group
+                    gr.Dropdown(  # voice_dropdown_unified - show ElevenLabs voices
+                        choices=voices,
+                        value=voices[0] if voices else None,
+                        info="ElevenLabs voice selection",
+                        allow_custom_value=True,
+                    ),
+                    status_msg,
+                )
+            else:
+                return (
+                    gr.Group(visible=False),  # openai_tts_group
+                    gr.Group(visible=True),   # elevenlabs_tts_group
+                    gr.Dropdown(  # voice_dropdown_unified
+                        choices=[],
+                        value=None,
+                        info="ElevenLabs voice selection",
+                        allow_custom_value=True,
+                    ),
+                    status_msg,
+                )
+        else:
+            # Show OpenAI config, hide ElevenLabs config
+            # Update unified voice dropdown with OpenAI voices
+            return (
+                gr.Group(visible=False),  # openai_tts_group (hidden, voice shown in unified dropdown)
+                gr.Group(visible=False),  # elevenlabs_tts_group
+                gr.Dropdown(  # voice_dropdown_unified - show OpenAI voices
+                    choices=VOICE_OPTIONS,
+                    value=OPENAI_TTS_VOICE,
+                    info="OpenAI TTS voice selection",
+                ),
+                "",
+            )
+
+    # Connect TTS provider change event to show/hide provider configs and load voices
+    tts_provider_input.change(
+        fn=async_update_tts_provider,
+        inputs=[tts_provider_input],
+        outputs=[
+            openai_tts_group,
+            elevenlabs_tts_group,
+            voice_dropdown_unified,
+            elevenlabs_voice_status,
+        ],
     )
 
     # Expose functions as MCP tools (MCP-only, not shown in UI)
@@ -465,6 +711,9 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
     gr.api(narrate_text)
     gr.api(list_characters)
     gr.api(get_config_status)
+
+    # Pre-load voices on startup (not needed since voices are hardcoded, but kept for compatibility)
+    # Voices are already initialized in the UI, so this is not strictly necessary
 
 
 # Launch with MCP server enabled
