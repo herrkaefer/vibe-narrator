@@ -8,7 +8,9 @@ sdk_version: 6.0.1
 app_file: app.py
 pinned: false
 license: mit
-short_description: Stylized voice embodiment for terminal agents.
+short_description: Stylized voice embodiment for terminal agents. Agents talk.
+tags:
+  - building-mcp-track-creative
 ---
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+I've been actively developing locally and on GitHub. Will move here soon...
