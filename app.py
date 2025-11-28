@@ -433,6 +433,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         choices=MODEL_OPTIONS,
                         value=DEFAULT_MODEL,
                         info="GPT model for text generation",
+                        allow_custom_value=False,
                     )
 
                     tts_provider_input = gr.Dropdown(
@@ -440,6 +441,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         choices=TTS_PROVIDER_OPTIONS,
                         value="OpenAI TTS",
                         info="Choose TTS service provider",
+                        allow_custom_value=False,
                     )
 
                     # Voice dropdown - will be updated based on provider
@@ -448,6 +450,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         choices=VOICE_OPTIONS,
                         value=OPENAI_TTS_VOICE,
                         info="TTS voice selection",
+                        allow_custom_value=False,
                     )
 
                     # Hidden groups for status tracking (not visible in UI)
@@ -467,6 +470,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         value=DEFAULT_VOICE,
                         info="TTS voice selection",
                         visible=False,
+                        allow_custom_value=False,
                     )
 
                     voice_status = gr.Textbox(
@@ -649,6 +653,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                     value=None,
                     info="Voice is automatically selected based on character",
                     visible=False,  # Hide voice selection for ElevenLabs
+                    allow_custom_value=False,
                 ),
                 "ℹ️ Voice is automatically selected based on the chosen character",
             )
@@ -663,6 +668,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                     value=OPENAI_TTS_VOICE,
                     info="OpenAI TTS voice selection",
                     visible=True,  # Show voice selection for OpenAI
+                    allow_custom_value=False,
                 ),
                 "",
             )
