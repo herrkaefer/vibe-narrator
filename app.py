@@ -410,36 +410,23 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                     gr.Markdown("## ⚙️ Configuration")
 
                     gr.Markdown("**Character**")
-                    character_buttons = []
+                    character_radio = gr.Radio(
+                        label="Character",
+                        choices=list(CHARACTER_CHOICES.keys()),
+                        value=DEFAULT_CHARACTER,
+                        info="Select a character personality",
+                    )
                     character_state = gr.State(value=DEFAULT_CHARACTER)
 
-                    # Create buttons for each character
-                    with gr.Row():
-                        for char_name in CHARACTER_CHOICES.keys():
-                            btn = gr.Button(
-                                char_name,
-                                variant="secondary" if char_name != DEFAULT_CHARACTER else "primary",
-                                size="sm",
-                            )
-                            character_buttons.append(btn)
+                    # Update character_state when radio selection changes
+                    def update_character_state(selected_character):
+                        return selected_character
 
-                            # Create click handler for each button
-                            def make_click_handler(name):
-                                def click_handler(current_state):
-                                    # Return updated state and button variants
-                                    updates = [name]  # First output is character_state
-                                    # Then update all button variants
-                                    for char_name in CHARACTER_CHOICES.keys():
-                                        variant = "primary" if char_name == name else "secondary"
-                                        updates.append(gr.Button(variant=variant))
-                                    return updates
-                                return click_handler
-
-                            btn.click(
-                                fn=make_click_handler(char_name),
-                                inputs=[character_state],
-                                outputs=[character_state] + character_buttons,
-                            )
+                    character_radio.change(
+                        fn=update_character_state,
+                        inputs=[character_radio],
+                        outputs=[character_state],
+                    )
 
                     model_dropdown = gr.Dropdown(
                         label="LLM Model",
