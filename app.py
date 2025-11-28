@@ -640,33 +640,18 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
     async def async_update_tts_provider(tts_provider: str):
         """Async update UI when TTS provider changes and auto-load voices if needed."""
         if tts_provider == "ElevenLabs TTS":
-            # Show ElevenLabs config, hide OpenAI config
-            # Get voices from hardcoded list (no API call needed) - only names
-            voices, status_msg = get_elevenlabs_voices()
-            if voices:
-                return (
-                    gr.Group(visible=False),  # openai_tts_group
-                    gr.Group(visible=True),   # elevenlabs_tts_group
-                    gr.Dropdown(  # voice_dropdown_unified - show ElevenLabs voices
-                        choices=voices,
-                        value=voices[0] if voices else None,
-                        info="ElevenLabs voice selection",
-                        allow_custom_value=True,
-                    ),
-                    status_msg,
-                )
-            else:
-                return (
-                    gr.Group(visible=False),  # openai_tts_group
-                    gr.Group(visible=True),   # elevenlabs_tts_group
-                    gr.Dropdown(  # voice_dropdown_unified
-                        choices=[],
-                        value=None,
-                        info="ElevenLabs voice selection",
-                        allow_custom_value=True,
-                    ),
-                    status_msg,
-                )
+            # For ElevenLabs, hide voice selection (each character has a fixed voice_id)
+            return (
+                gr.Group(visible=False),  # openai_tts_group
+                gr.Group(visible=True),   # elevenlabs_tts_group
+                gr.Dropdown(  # voice_dropdown_unified - hide for ElevenLabs
+                    choices=[],
+                    value=None,
+                    info="Voice is automatically selected based on character",
+                    visible=False,  # Hide voice selection for ElevenLabs
+                ),
+                "ℹ️ Voice is automatically selected based on the chosen character",
+            )
         else:
             # Show OpenAI config, hide ElevenLabs config
             # Update unified voice dropdown with OpenAI voices
@@ -677,6 +662,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                     choices=VOICE_OPTIONS,
                     value=OPENAI_TTS_VOICE,
                     info="OpenAI TTS voice selection",
+                    visible=True,  # Show voice selection for OpenAI
                 ),
                 "",
             )

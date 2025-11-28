@@ -379,12 +379,23 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 audio_fragment_count = 0
 
                 # TTS supports both OpenAI and ElevenLabs
+                # Determine voice and instructions based on provider
+                tts_provider = ctx.session.tts_provider or "openai"
+                if tts_provider == "elevenlabs":
+                    # For ElevenLabs, use character's fixed voice_id
+                    tts_voice = character.elevenlabs_voice_id
+                    tts_instructions = None  # ElevenLabs doesn't use instructions parameter
+                else:
+                    # For OpenAI, use user-selected voice and character's OpenAI instructions
+                    tts_voice = ctx.session.voice
+                    tts_instructions = character.openai_tts_instructions
+
                 tts_params = {
                     "text_block": block,
                     "api_key": ctx.session.tts_api_key or ctx.session.llm_api_key,
-                    "voice": ctx.session.voice,
-                    "instructions": character.tts_instructions,
-                    "tts_provider": ctx.session.tts_provider,
+                    "voice": tts_voice,
+                    "instructions": tts_instructions,
+                    "tts_provider": tts_provider,
                 }
                 # For OpenAI, don't pass base_url and default_headers (use OpenAI default endpoint)
                 # For ElevenLabs, these are not used
