@@ -49,3 +49,7 @@ Without the bridge, you would need to manually call the MCP tools from your appl
 - Playing audio in real-time without requiring manual intervention
 
 This makes narration seamless and hands-free during interactive coding sessions.
+
+## License
+
+MIT License
