@@ -5,8 +5,16 @@ import base64
 import json
 import asyncio
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file (if exists)
 # This won't override existing environment variables (e.g., from Space settings)
@@ -960,8 +968,6 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
                         except Exception as e:
                             import traceback
-                            import logging
-                            logger = logging.getLogger(__name__)
                             error_msg = f"❌ Error: {str(e)}"
                             error_trace = traceback.format_exc()
                             logger.error(f"Chat function error: {error_msg}\n{error_trace}")

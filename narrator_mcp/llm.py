@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import AsyncIterator, Optional
+import logging
 
 import openai
 
@@ -120,6 +121,9 @@ Remember:
 # Default mode is chat
 DEFAULT_SYSTEM_PROMPT = NARRATION_MODE_SYSTEM_PROMPT
 
+# Setup logger for LLM operations
+llm_logger = logging.getLogger("llm")
+
 
 def get_character_modified_system_prompt(
     base_system_prompt: str,
@@ -174,6 +178,26 @@ async def stream_llm(
         {"role": "user", "content": prompt}
     ]
 
+    # Log LLM input
+    llm_logger.info("=" * 80)
+    llm_logger.info("🤖 LLM Request (MCP)")
+    llm_logger.info(f"Model: {model}")
+    if character:
+        llm_logger.info(f"Character: {character.id} ({character.name})")
+    if max_tokens:
+        llm_logger.info(f"Max tokens: {max_tokens}")
+    llm_logger.info(f"Messages ({len(messages)} total):")
+    for i, msg in enumerate(messages):
+        role = msg.get("role", "unknown")
+        content = msg.get("content", "")
+        # Truncate very long content for readability
+        if len(content) > 500:
+            content_preview = content[:500] + "... [truncated]"
+        else:
+            content_preview = content
+        llm_logger.info(f"  [{i+1}] {role.upper()}: {content_preview}")
+    llm_logger.info("-" * 80)
+
     create_params = {
         "model": model,
         "messages": messages,
@@ -184,13 +208,25 @@ async def stream_llm(
 
     response = await client.chat.completions.create(**create_params)
 
+    # Accumulate full response for logging
+    full_response = ""
     async for chunk in response:
         if not chunk.choices:
             continue
         delta = chunk.choices[0].delta
         content = delta.content if hasattr(delta, 'content') else None
         if content:
+            full_response += content
             yield content
+
+    # Log LLM output
+    llm_logger.info("📤 LLM Response (MCP):")
+    if len(full_response) > 500:
+        llm_logger.info(f"{full_response[:500]}... [truncated]")
+    else:
+        llm_logger.info(full_response)
+    llm_logger.info(f"Total length: {len(full_response)} characters")
+    llm_logger.info("=" * 80)
 
 
 __all__ = [
