@@ -191,7 +191,7 @@ async def narrate_text(
     openai_tts_voice: str | None = None,
     elevenlabs_tts_api_key: str | None = None,
     elevenlabs_tts_voice: str | None = None,
-) -> tuple[str | None, str]:
+) -> str:
     """Generate narrated speech with personality using LLM and TTS.
 
     This function takes text input and converts it to narrated speech with
@@ -215,14 +215,26 @@ async def narrate_text(
         Tuple of (audio_file_path, generated_text) or (None, error_message)
     """
     if not prompt or not prompt.strip():
-        return None, "Please enter some text to narrate."
+        error_result = {
+            "text": "",
+            "audio": "",
+            "format": "mp3",
+            "error": "Please enter some text to narrate."
+        }
+        return json.dumps(error_result)
 
     global _global_session, _global_context
 
     # Determine API keys (prefer parameters, then session, then environment variables)
     final_llm_api_key = llm_api_key or _global_session.llm_api_key or OPENAI_API_KEY
     if not final_llm_api_key:
-        return None, "Error: OPENAI_API_KEY not provided. Please configure using configure tool or set environment variable."
+        error_result = {
+            "text": "",
+            "audio": "",
+            "format": "mp3",
+            "error": "Error: OPENAI_API_KEY not provided. Please configure using configure tool or set environment variable."
+        }
+        return json.dumps(error_result)
 
     # Use session defaults if parameters not provided
     final_model = model or _global_session.llm_model
@@ -286,7 +298,13 @@ async def narrate_text(
                 final_voice = None
 
         if not final_tts_api_key:
-            return None, "Error: ELEVENLABS_API_KEY not provided. Please set it in environment variables."
+            error_result = {
+                "text": "",
+                "audio": "",
+                "format": "mp3",
+                "error": "Error: ELEVENLABS_API_KEY not provided. Please set it in environment variables."
+            }
+            return json.dumps(error_result)
     else:
         # Use OpenAI-specific parameters (default)
         if openai_tts_api_key and openai_tts_api_key.strip():
@@ -323,17 +341,25 @@ async def narrate_text(
         # Generate narration directly
         text, audio_bytes = await generate_narration(ctx, prompt)
 
-        # Save to temporary file for Gradio
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
-            f.write(audio_bytes)
-            audio_path = f.name
-
-        return audio_path, f"✨ Generated narration:\n\n{text}"
+        # Return as JSON with base64-encoded audio (consistent with local MCP server)
+        # This format works for both MCP API calls and can be parsed by UI wrapper
+        result = {
+            "text": text,
+            "audio": base64.b64encode(audio_bytes).decode('utf-8'),
+            "format": "mp3"
+        }
+        return json.dumps(result)
 
     except Exception as e:
         error_msg = f"❌ Error generating narration: {str(e)}"
-        return None, error_msg
+        # Return error as JSON format (consistent with success case)
+        error_result = {
+            "text": "",
+            "audio": "",
+            "format": "mp3",
+            "error": error_msg
+        }
+        return json.dumps(error_result)
 
 
 def get_character_info():
@@ -605,7 +631,8 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
         else:
             openai_voice_val = voice_val
 
-        return await narrate_text(
+        # narrate_text now returns JSON string, parse it for UI
+        result_json = await narrate_text(
             prompt=prompt,
             character=character,
             voice=None,  # Not used, provider-specific voices are used instead
@@ -618,6 +645,32 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
             elevenlabs_tts_api_key=None,  # Will use ELEVENLABS_API_KEY from environment
             elevenlabs_tts_voice=elevenlabs_voice_val,
         )
+
+        # Parse JSON result
+        result = json.loads(result_json)
+
+        # Check for error in result
+        if "error" in result:
+            error_msg = result.get("error", "Unknown error")
+            return None, f"❌ {error_msg}"
+
+        generated_text = result.get("text", "")
+        audio_base64 = result.get("audio", "")
+
+        # Save audio to temporary file for Gradio Audio component
+        import tempfile
+        audio_path = None
+        if audio_base64:
+            try:
+                audio_bytes = base64.b64decode(audio_base64)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+                    f.write(audio_bytes)
+                    audio_path = f.name
+            except Exception as e:
+                # If decoding fails, return None for audio path
+                audio_path = None
+
+        return audio_path, f"✨ Generated narration:\n\n{generated_text}"
 
     # Connect the narration handler
     narrate_btn.click(

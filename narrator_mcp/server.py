@@ -249,6 +249,32 @@ async def get_config_status() -> str:
     return json.dumps(status)
 
 
+def _is_valid_output(text: str) -> bool:
+    """Check if text is a valid, non-empty output worth narrating.
+
+    Filters out:
+    - Empty strings or whitespace-only
+    - Patterns like 'Output: ""', 'Output: \'\'', etc. (LLM sometimes outputs example format)
+    - Strings that are just quotes or whitespace after stripping
+    """
+    if not text:
+        return False
+
+    stripped = text.strip().strip('"').strip("'").strip()
+    if not stripped:
+        return False
+
+    # Filter out patterns like "Output: """, "Output: ''", "Output:", etc.
+    stripped_lower = stripped.lower()
+    if stripped_lower.startswith("output:"):
+        # Check if after "output:" it's just quotes/whitespace
+        after_output = stripped_lower[7:].strip().strip('"').strip("'").strip()
+        if not after_output:
+            return False
+
+    return True
+
+
 async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
     """
     Generate narrated speech from text prompt.
@@ -295,24 +321,22 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 # Chunk tokens for TTS
                 block = ctx.chunker.add_token(token)
                 if block:
-                    stripped = block.strip().strip('"').strip("'").strip()
-                    if stripped:
+                    if _is_valid_output(block):
                         narrate_logger.info(f"📦 Chunk ready for TTS ({len(block)} chars): {repr(block)}")
                         await tts_queue.put(block)
                     else:
-                        narrate_logger.info(f"⏭️ Skipping empty chunk: {repr(block)}")
+                        narrate_logger.info(f"⏭️ Skipping invalid/empty chunk: {repr(block)}")
 
             narrate_logger.info(f"✅ LLM streaming complete ({token_count} tokens)")
 
             # Flush remaining tokens
             leftover = ctx.chunker.flush()
             if leftover:
-                stripped = leftover.strip().strip('"').strip("'").strip()
-                if stripped:
+                if _is_valid_output(leftover):
                     narrate_logger.info(f"📦 Final chunk for TTS ({len(leftover)} chars): {repr(leftover)}")
                     await tts_queue.put(leftover)
                 else:
-                    narrate_logger.info(f"⏭️ Skipping empty final chunk: {repr(leftover)}")
+                    narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk: {repr(leftover)}")
 
             await tts_queue.put(None)  # Signal completion
 
