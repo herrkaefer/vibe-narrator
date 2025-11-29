@@ -535,10 +535,20 @@ async def generate_chat_response(
     response = await client.chat.completions.create(
         model=model,
         messages=messages,
-        stream=False,  # Get complete response for chat
+        stream=True,  # Use streaming for progressive display
     )
 
-    return response.choices[0].message.content
+    # Accumulate streamed response
+    full_response = ""
+    async for chunk in response:
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta
+        content = delta.content if hasattr(delta, 'content') else None
+        if content:
+            full_response += content
+
+    return full_response
 
 
 # Create the Gradio interface
@@ -778,11 +788,12 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         lines=2,
                     )
 
-                    # Chat function
+                    # Chat function with streaming
                     async def chat_function(message, history):
-                        """Chat function that generates response and audio."""
+                        """Chat function that generates response and audio with streaming."""
                         if not message or not message.strip():
-                            return history, "", None, ""
+                            yield history, "", None, ""
+                            return
 
                         # Get configuration from state
                         character = chat_character_state.value
@@ -797,28 +808,84 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             new_history = _convert_history_to_dict_format(history)
                             new_history.append({"role": "user", "content": message})
                             new_history.append({"role": "assistant", "content": error_msg})
-                            return new_history, "", None, ""
+                            yield new_history, "", None, ""
+                            return
+
+                        # Immediately add user message to history and yield
+                        new_history = _convert_history_to_dict_format(history)
+                        new_history.append({"role": "user", "content": message})
+                        new_history.append({"role": "assistant", "content": ""})  # Empty assistant message for streaming
+                        yield new_history, "", None, ""
 
                         try:
                             # Convert history format for LLM (expects old format)
                             old_format_history = _convert_history_to_old_format(history)
 
-                            # Generate chat response using LLM
-                            ai_response = await generate_chat_response(
-                                message=message,
-                                history=old_format_history,
-                                character=character,
-                                model=model,
-                                llm_api_key=llm_api_key,
-                                base_url=_global_session.base_url,
-                                default_headers=_global_session.default_headers,
+                            # Get character object
+                            if character in CHARACTER_CHOICES:
+                                character_id = CHARACTER_CHOICES[character]
+                            else:
+                                character_id = character
+
+                            char_obj = get_character(character_id)
+
+                            # Build messages from history
+                            messages = []
+                            system_prompt = get_character_modified_system_prompt(
+                                base_system_prompt=CHAT_MODE_SYSTEM_PROMPT,
+                                character=char_obj,
                             )
+                            messages.append({"role": "system", "content": system_prompt})
+
+                            # Add history
+                            for pair in old_format_history:
+                                if len(pair) >= 2:
+                                    user_msg = pair[0]
+                                    assistant_msg = pair[1]
+                                    if user_msg:
+                                        messages.append({"role": "user", "content": user_msg})
+                                    if assistant_msg:
+                                        messages.append({"role": "assistant", "content": assistant_msg})
+
+                            # Add current message
+                            messages.append({"role": "user", "content": message})
+
+                            # Stream LLM response
+                            import openai
+                            client_kwargs = {"api_key": llm_api_key}
+                            if _global_session.base_url:
+                                client_kwargs["base_url"] = _global_session.base_url
+                            if _global_session.default_headers:
+                                client_kwargs["default_headers"] = _global_session.default_headers
+
+                            client = openai.AsyncOpenAI(**client_kwargs)
+
+                            ai_response = ""
+                            # Await the coroutine to get the async iterator
+                            stream = await client.chat.completions.create(
+                                model=model,
+                                messages=messages,
+                                stream=True,
+                            )
+                            async for chunk in stream:
+                                if not chunk.choices:
+                                    continue
+                                delta = chunk.choices[0].delta
+                                content = delta.content if hasattr(delta, 'content') else None
+                                if content:
+                                    ai_response += content
+                                    # Update history with streaming response
+                                    streaming_history = _convert_history_to_dict_format(history)
+                                    streaming_history.append({"role": "user", "content": message})
+                                    streaming_history.append({"role": "assistant", "content": ai_response})
+                                    yield streaming_history, "", None, ""
 
                             if not ai_response:
-                                new_history = _convert_history_to_dict_format(history)
-                                new_history.append({"role": "user", "content": message})
-                                new_history.append({"role": "assistant", "content": ""})
-                                return new_history, "", None, ""
+                                final_history = _convert_history_to_dict_format(history)
+                                final_history.append({"role": "user", "content": message})
+                                final_history.append({"role": "assistant", "content": ""})
+                                yield final_history, "", None, ""
+                                return
 
                             # Generate audio from AI response using MCP narrate_text
                             # This will apply character styling to the response
@@ -850,14 +917,31 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
                             # Generate narration (audio) from AI response
                             # In chat mode, generate_narration will re-process the text with character styling for audio
-                            # But we display the original ai_response in the chatbox
                             styled_text, audio_bytes = await generate_narration(ctx, ai_response)
 
-                            # Use the original AI response for display (not the styled text from MCP)
-                            # The styled text is only used for audio generation with character voice
-                            new_history = _convert_history_to_dict_format(history)
-                            new_history.append({"role": "user", "content": message})
-                            new_history.append({"role": "assistant", "content": ai_response})
+                            # Combine original response and styled text for display
+                            # Original response on top, styled text below with different styling
+                            if styled_text and styled_text.strip() and styled_text != ai_response:
+                                # Only show styled text if it's different from original
+                                # Use HTML format for better styling control in Gradio Chatbot
+                                # Escape HTML special characters in styled_text
+                                import html
+                                escaped_styled = html.escape(styled_text)
+                                combined_content = f"""{ai_response}
+
+---
+
+<div style="margin-top: 12px; padding: 10px 12px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-left: 4px solid #6c757d; border-radius: 4px; font-style: italic; color: #495057; font-size: 0.92em; line-height: 1.5;">
+<strong style="color: #495057;">🎭 Character Style:</strong><br>
+<span style="color: #6c757d;">{escaped_styled}</span>
+</div>"""
+                            else:
+                                combined_content = ai_response
+
+                            # History already contains the final response from streaming, update with combined content
+                            final_history = _convert_history_to_dict_format(history)
+                            final_history.append({"role": "user", "content": message})
+                            final_history.append({"role": "assistant", "content": combined_content})
 
                             # Save audio to temporary file for playback
                             import tempfile
@@ -970,17 +1054,18 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             </script>
                             """
 
-                            return new_history, "", audio_path, audio_html
+                            # Final yield with audio
+                            yield final_history, "", audio_path, audio_html
 
                         except Exception as e:
                             import traceback
                             error_msg = f"❌ Error: {str(e)}"
                             error_trace = traceback.format_exc()
                             logger.error(f"Chat function error: {error_msg}\n{error_trace}")
-                            new_history = _convert_history_to_dict_format(history)
-                            new_history.append({"role": "user", "content": message})
-                            new_history.append({"role": "assistant", "content": error_msg})
-                            return new_history, "", None, ""
+                            error_history = _convert_history_to_dict_format(history)
+                            error_history.append({"role": "user", "content": message})
+                            error_history.append({"role": "assistant", "content": error_msg})
+                            yield error_history, "", None, ""
 
                     # Submit button
                     submit_btn = gr.Button("Send", variant="primary")
