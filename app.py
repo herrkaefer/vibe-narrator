@@ -30,6 +30,16 @@ CHARACTERS = get_characters_list()
 CHARACTER_CHOICES = {f"{char['name']}": char['id'] for char in CHARACTERS}
 DEFAULT_CHARACTER = "The Reluctant Developer"
 
+# Character descriptions for tooltips
+CHARACTER_DESCRIPTIONS = {
+    "The Burned-Out Developer": "Flat, drained, deeply unenthusiastic - debugging fatigue incarnate",
+    "The Overconfident Senior Developer": "Energetic, smug, wrong about everything but says it with authority",
+    "The Reluctant Developer": "Exhausted, unmotivated, begrudgingly compliant - every sentence sounds forced",
+    "The Enlightened Zen Developer": "Calm, serene, meditative - code is a path to enlightenment",
+    "The Adoring Fanboy": "Extremely enthusiastic, worshipful - every line of code is a masterpiece",
+    "The Whispering ASMR Developer": "Soft, intimate, soothing - code explained with ASMR-like tranquility",
+}
+
 # Voice options (OpenAI TTS voices) - hardcoded list from OpenAI documentation
 # Available voices: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer
 VOICE_OPTIONS = ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]
@@ -414,7 +424,6 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         label="Character",
                         choices=list(CHARACTER_CHOICES.keys()),
                         value=DEFAULT_CHARACTER,
-                        info="Select a character personality",
                     )
                     character_state = gr.State(value=DEFAULT_CHARACTER)
 
@@ -497,22 +506,6 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         interactive=False,
                     )
 
-        # Characters Info Tab
-        with gr.Tab("Characters"):
-            gr.Markdown("## Available Characters")
-            gr.Markdown(get_character_info())
-
-            gr.Markdown("""
-            ### Character Personalities
-
-            - **The Burned-Out Developer**: Flat, drained, deeply unenthusiastic - debugging fatigue incarnate
-            - **The Overconfident Senior Developer**: Energetic, smug, wrong about everything but says it with authority
-            - **The Reluctant Developer**: Exhausted, unmotivated, begrudgingly compliant - every sentence sounds forced
-            - **The Enlightened Zen Developer**: Calm, serene, meditative - code is a path to enlightenment
-            - **The Adoring Fanboy**: Extremely enthusiastic, worshipful - every line of code is a masterpiece
-            - **The Whispering ASMR Developer**: Soft, intimate, soothing - code explained with ASMR-like tranquility
-            """)
-
         # MCP Info Tab
         with gr.Tab("MCP Server"):
             gr.Markdown("## MCP Server Information")
@@ -523,7 +516,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
             When deployed on Hugging Face Spaces, the MCP server is available at:
             ```
-            https://YOUR-USERNAME-vibe-narrator.hf.space/gradio_api/mcp/sse
+            https://mcp-1st-birthday-vibe-narrator.hf.space/gradio_api/mcp/sse
             ```
 
             ### Client Configuration
@@ -534,7 +527,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
             {
               "mcpServers": {
                 "narrator-mcp": {
-                  "url": "https://YOUR-USERNAME-vibe-narrator.hf.space/gradio_api/mcp/sse"
+                  "url": "https://mcp-1st-birthday-vibe-narrator.hf.space/gradio_api/mcp/sse"
                 }
               }
             }
