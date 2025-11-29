@@ -556,19 +556,59 @@ async def generate_chat_response(
 
 # Create the Gradio interface
 with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
-    gr.Markdown("# 🎨 Vibe Narrator")
-    gr.Markdown("Stylized voice embodiment for terminal agents. Give your code a voice with personality!")
+    # Custom CSS for centered, narrower layout
+    gr.HTML("""
+    <style>
+    .gradio-container {
+        max-width: 900px !important;
+        margin: 0 auto !important;
+    }
+    #chat-row {
+        justify-content: center;
+    }
+    #chat-column {
+        max-width: 700px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    </style>
+    """, visible=False)
 
-    # Display logo if available
+    # Header with logo and title
     logo_path = Path(__file__).parent / "logo.png"
+    logo_html = ""
     if logo_path.exists():
-        gr.Image(str(logo_path), show_label=False, container=False, height=120)
+        try:
+            logo_bytes = logo_path.read_bytes()
+            logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
+            logo_html = (
+                '<div class="header-logo">'
+                f'<img src="data:image/png;base64,{logo_base64}" '
+                'alt="Vibe Narrator Logo" style="height:72px;width:auto;display:block;" />'
+                '</div>'
+            )
+        except Exception:
+            logo_html = ""
+
+    header_html = f"""
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px;">
+        {logo_html}
+        <div style="text-align:left;">
+            <h1 style="margin:0;font-weight:700;font-size:2.4rem;">Vibe Narrator</h1>
+            <p style="margin:6px 0 0 0;font-size:1.2rem;font-weight:600;">
+                Give every terminal agent a distinctive voice and vibe — live narration with personality that keeps you in the flow.
+            </p>
+        </div>
+    </div>
+    """
+    gr.HTML(header_html)
 
     with gr.Tabs():
         # Main Narration Tab - Redesigned with video placeholder and workflow explanation
         with gr.Tab("Narrate"):
             with gr.Row():
-                with gr.Column(scale=2):
+                # First column: Demo Videos
+                with gr.Column(scale=1):
                     gr.Markdown("## 🎬 Demo Videos")
 
                     # Video placeholder
@@ -593,6 +633,8 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                     # </div>
                     # """)
 
+                # Second column: How It Works and explanations
+                with gr.Column(scale=1):
                     gr.Markdown("## 📖 How It Works")
 
                     with gr.Accordion("🔄 Workflow", open=True):
@@ -652,115 +694,11 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         - Easy to configure and use
                         """)
 
-                with gr.Column(scale=1):
-                    gr.Markdown("## 📝 Try It Out")
-
-                    prompt_input = gr.Textbox(
-                        label="Text to Narrate",
-                        placeholder="Enter the text you want to narrate...",
-                        lines=8,
-                        value="",
-                    )
-
-                    gr.Markdown("## ⚙️ Configuration")
-
-                    gr.Markdown("**Character**")
-                    character_radio = gr.Radio(
-                        label="Character",
-                        choices=list(CHARACTER_CHOICES.keys()),
-                        value=DEFAULT_CHARACTER,
-                    )
-                    character_state = gr.State(value=DEFAULT_CHARACTER)
-
-                    # Update character_state when radio selection changes
-                    def update_character_state(selected_character):
-                        return selected_character
-
-                    character_radio.change(
-                        fn=update_character_state,
-                        inputs=[character_radio],
-                        outputs=[character_state],
-                    )
-
-                    model_dropdown = gr.Dropdown(
-                        label="LLM Model",
-                        choices=MODEL_OPTIONS,
-                        value=DEFAULT_MODEL,
-                        info="GPT model for text generation",
-                        allow_custom_value=False,
-                    )
-
-                    tts_provider_input = gr.Dropdown(
-                        label="TTS Provider",
-                        choices=TTS_PROVIDER_OPTIONS,
-                        value="OpenAI TTS",
-                        info="Choose TTS service provider",
-                        allow_custom_value=False,
-                    )
-
-                    # Voice dropdown - will be updated based on provider
-                    voice_dropdown_unified = gr.Dropdown(
-                        label="Voice",
-                        choices=VOICE_OPTIONS,
-                        value=OPENAI_TTS_VOICE,
-                        info="TTS voice selection",
-                        allow_custom_value=False,
-                    )
-
-                    # Hidden groups for status tracking (not visible in UI)
-                    openai_tts_group = gr.Group(visible=False)
-                    elevenlabs_tts_group = gr.Group(visible=False)
-                    elevenlabs_voice_status = gr.Textbox(
-                        label="Voice Status",
-                        value="",
-                        interactive=False,
-                        visible=False,
-                    )
-
-                    # Legacy voice dropdown (hidden, kept for compatibility)
-                    voice_dropdown = gr.Dropdown(
-                        label="Voice",
-                        choices=VOICE_OPTIONS,
-                        value=DEFAULT_VOICE,
-                        info="TTS voice selection",
-                        visible=False,
-                        allow_custom_value=False,
-                    )
-
-                    voice_status = gr.Textbox(
-                        label="Voice Status",
-                        value="",
-                        interactive=False,
-                        visible=False,
-                    )
-
-                    narrate_btn = gr.Button("🎤 Generate Narration", variant="primary", size="lg")
-
-                with gr.Column(scale=1):
-                    gr.Markdown("## 🎵 Output")
-
-                    audio_output = gr.Audio(
-                        label="Generated Audio",
-                        type="filepath",
-                        interactive=False,
-                    )
-
-                    # HTML component for streaming audio playback
-                    streaming_audio_html = gr.HTML(
-                        label="Streaming Audio",
-                        visible=True,
-                    )
-
-                    text_output = gr.Textbox(
-                        label="Generated Text",
-                        lines=12,
-                        interactive=False,
-                    )
 
         # Chat Tab
         with gr.Tab("Chat"):
-            with gr.Row():
-                with gr.Column(scale=3):
+            with gr.Row(elem_id="chat-row"):
+                with gr.Column(scale=1, elem_id="chat-column"):
                     # Chat configuration state
                     chat_character_state = gr.State(value=DEFAULT_CHARACTER)
                     chat_model_state = gr.State(value=DEFAULT_MODEL)
@@ -958,12 +896,8 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             audio_id = f"chat-audio-{int(time.time() * 1000000)}"
 
                             audio_html = f"""
-                            <div id="audio-container-{audio_id}" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; background: #f9f9f9;">
-                                <p><strong>Audio Debug Info:</strong></p>
-                                <p>Audio ID: {audio_id}</p>
-                                <p>Audio size: {len(audio_bytes)} bytes</p>
-                                <p id="audio-status-{audio_id}">Status: Loading...</p>
-                                <audio id="{audio_id}" controls autoplay preload="auto" style="width: 100%; margin-top: 10px;">
+                            <div id="audio-container-{audio_id}" style="margin: 10px 0;">
+                                <audio id="{audio_id}" controls autoplay preload="auto" style="width: 100%;">
                                     <source src="{audio_data_url}" type="audio/mpeg">
                                 </audio>
                             </div>
@@ -974,7 +908,6 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
                                 function initAndPlay() {{
                                     const audio = document.getElementById(audioId);
-                                    const statusEl = document.getElementById('audio-status-' + audioId);
 
                                     if (!audio) {{
                                         console.log('⏳ Audio element not found yet, retrying...');
@@ -983,7 +916,6 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                                     }}
 
                                     console.log('✅ Audio element found:', audioId);
-                                    if (statusEl) statusEl.textContent = 'Status: Found, initializing...';
 
                                     // Stop all other playing audios
                                     const allAudios = document.querySelectorAll('audio');
@@ -998,18 +930,15 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                                     // Event listeners
                                     audio.addEventListener('canplay', () => {{
                                         console.log('▶️ Audio can play:', audioId);
-                                        if (statusEl) statusEl.textContent = 'Status: Ready to play';
                                         tryPlay();
                                     }});
 
                                     audio.addEventListener('play', () => {{
                                         console.log('🎵 Audio playing:', audioId);
-                                        if (statusEl) statusEl.textContent = 'Status: Playing';
                                     }});
 
                                     audio.addEventListener('error', (e) => {{
                                         console.error('❌ Audio error:', audioId, e, audio.error);
-                                        if (statusEl) statusEl.textContent = 'Status: ERROR - ' + (audio.error ? audio.error.message : 'Unknown');
                                     }});
 
                                     // Load and try to play
@@ -1023,10 +952,8 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                                             if (playPromise !== undefined) {{
                                                 playPromise.then(() => {{
                                                     console.log('✅ Audio playing successfully:', audioId);
-                                                    if (statusEl) statusEl.textContent = 'Status: Playing';
                                                 }}).catch(e => {{
                                                     console.error('❌ Play prevented:', audioId, e);
-                                                    if (statusEl) statusEl.textContent = 'Status: Waiting for interaction';
                                                     // Retry on interaction
                                                     const retry = () => {{
                                                         audio.play().catch(() => {{}});
@@ -1423,8 +1350,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                     chunk_audio_id = f"stream-audio-{base_timestamp}-{i+1}"
                     chunk_audio_url = f"data:audio/mpeg;base64,{audio_b64}"
                     audio_html_parts.append(f"""
-                    <div id="audio-container-{chunk_audio_id}" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                        <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;">Chunk {i+1}: "{txt_chunk}"</p>
+                    <div id="audio-container-{chunk_audio_id}" style="margin: 10px 0;">
                         <audio id="{chunk_audio_id}" controls preload="auto" style="width: 100%;">
                             <source src="{chunk_audio_url}" type="audio/mpeg">
                         </audio>
@@ -1520,64 +1446,6 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
             logger.error(f"Narration stream error: {error_msg}\n{traceback.format_exc()}")
             yield None, error_msg, ""
 
-    # Connect the narration handler - use streaming version
-    narrate_btn.click(
-        fn=narrate_text_ui_stream,
-        inputs=[
-            prompt_input,
-            character_state,
-            voice_dropdown,  # Legacy, kept for compatibility but not used
-            model_dropdown,
-            tts_provider_input,
-            voice_dropdown_unified,
-        ],
-        outputs=[audio_output, text_output, streaming_audio_html],
-    )
-
-    # Update UI when TTS provider changes and auto-load voices
-    async def async_update_tts_provider(tts_provider: str):
-        """Async update UI when TTS provider changes and auto-load voices if needed."""
-        if tts_provider == "ElevenLabs TTS":
-            # For ElevenLabs, hide voice selection (each character has a fixed voice_id)
-            return (
-                gr.Group(visible=False),  # openai_tts_group
-                gr.Group(visible=True),   # elevenlabs_tts_group
-                gr.Dropdown(  # voice_dropdown_unified - hide for ElevenLabs
-                    choices=[],
-                    value=None,
-                    info="Voice is automatically selected based on character",
-                    visible=False,  # Hide voice selection for ElevenLabs
-                    allow_custom_value=False,
-                ),
-                "ℹ️ Voice is automatically selected based on the chosen character",
-            )
-        else:
-            # Show OpenAI config, hide ElevenLabs config
-            # Update unified voice dropdown with OpenAI voices
-            return (
-                gr.Group(visible=False),  # openai_tts_group (hidden, voice shown in unified dropdown)
-                gr.Group(visible=False),  # elevenlabs_tts_group
-                gr.Dropdown(  # voice_dropdown_unified - show OpenAI voices
-                    choices=VOICE_OPTIONS,
-                    value=OPENAI_TTS_VOICE,
-                    info="OpenAI TTS voice selection",
-                    visible=True,  # Show voice selection for OpenAI
-                    allow_custom_value=False,
-                ),
-                "",
-            )
-
-    # Connect TTS provider change event to show/hide provider configs and load voices
-    tts_provider_input.change(
-        fn=async_update_tts_provider,
-        inputs=[tts_provider_input],
-        outputs=[
-            openai_tts_group,
-            elevenlabs_tts_group,
-            voice_dropdown_unified,
-            elevenlabs_voice_status,
-        ],
-    )
 
     # Expose functions as MCP tools (MCP-only, not shown in UI)
     gr.api(configure)
