@@ -14,10 +14,11 @@ load_dotenv()
 
 # Import underlying functions and classes
 from narrator_mcp.server import generate_narration, AppContext
-from narrator_mcp.characters import get_characters_list
+from narrator_mcp.characters import get_characters_list, get_character
 from narrator_mcp.session import Session, DEFAULT_MODEL, DEFAULT_VOICE, DEFAULT_MODE
 from narrator_mcp.chunker import Chunker
 from narrator_mcp.tts import detect_tts_provider
+from narrator_mcp.llm import CHAT_MODE_SYSTEM_PROMPT, get_character_modified_system_prompt
 
 # Get API keys from environment (provider-specific)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -419,6 +420,119 @@ async def fetch_elevenlabs_voices() -> tuple[list[str], str]:
     return get_elevenlabs_voices()
 
 
+def _convert_history_to_dict_format(history):
+    """Convert history from old format [[user, assistant], ...] to new format [{"role": "user", "content": "..."}, ...]."""
+    new_history = []
+    for item in history:
+        if isinstance(item, dict) and "role" in item and "content" in item:
+            # Already in new format
+            new_history.append(item)
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            # Old format: [user_msg, assistant_msg]
+            user_msg = item[0] if item[0] else ""
+            assistant_msg = item[1] if item[1] else ""
+            if user_msg:
+                new_history.append({"role": "user", "content": user_msg})
+            if assistant_msg:
+                new_history.append({"role": "assistant", "content": assistant_msg})
+    return new_history
+
+
+def _convert_history_to_old_format(history):
+    """Convert history from new format to old format for LLM function."""
+    old_history = []
+    user_msg = None
+    for item in history:
+        if isinstance(item, dict) and "role" in item:
+            role = item.get("role")
+            content = item.get("content", "")
+            if role == "user":
+                user_msg = content
+            elif role == "assistant" and user_msg is not None:
+                old_history.append([user_msg, content])
+                user_msg = None
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            # Already in old format
+            old_history.append([item[0], item[1]])
+    return old_history
+
+
+async def generate_chat_response(
+    message: str,
+    history: list,
+    character: str,
+    model: str,
+    llm_api_key: str,
+    base_url: str | None = None,
+    default_headers: dict | None = None,
+) -> str:
+    """Generate chat response using LLM with conversation history.
+
+    Args:
+        message: Current user message
+        history: Conversation history (list of dicts with 'role' and 'content' keys)
+        character: Character name or ID
+        model: LLM model to use
+        llm_api_key: OpenAI API key
+        base_url: Custom base URL for API
+        default_headers: Custom headers for API requests
+
+    Returns:
+        Generated response text
+    """
+    import openai
+
+    # Get character object
+    if character in CHARACTER_CHOICES:
+        character_id = CHARACTER_CHOICES[character]
+    else:
+        character_id = character
+
+    char_obj = get_character(character_id)
+
+    # Build messages from history
+    messages = []
+
+    # Add system prompt with character
+    system_prompt = get_character_modified_system_prompt(
+        base_system_prompt=CHAT_MODE_SYSTEM_PROMPT,
+        character=char_obj,
+    )
+    messages.append({"role": "system", "content": system_prompt})
+
+    # Convert Gradio history format to OpenAI format
+    # Gradio history: list of [user_msg, assistant_msg] pairs
+    # OpenAI format: list of {"role": "user"/"assistant", "content": "..."}
+    for pair in history:
+        if len(pair) >= 2:
+            user_msg = pair[0]
+            assistant_msg = pair[1]
+            if user_msg:
+                messages.append({"role": "user", "content": user_msg})
+            if assistant_msg:
+                messages.append({"role": "assistant", "content": assistant_msg})
+
+    # Add current message
+    messages.append({"role": "user", "content": message})
+
+    # Call OpenAI API
+    client_kwargs = {"api_key": llm_api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    if default_headers:
+        client_kwargs["default_headers"] = default_headers
+
+    client = openai.AsyncOpenAI(**client_kwargs)
+
+    response = await client.chat.completions.create(
+        model=model,
+        messages=messages,
+        stream=False,  # Get complete response for chat
+    )
+
+    return response.choices[0].message.content
+
+
 # Create the Gradio interface
 with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
     gr.Markdown("# 🎨 Vibe Narrator")
@@ -430,11 +544,95 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
         gr.Image(str(logo_path), show_label=False, container=False, height=120)
 
     with gr.Tabs():
-        # Main Narration Tab
+        # Main Narration Tab - Redesigned with video placeholder and workflow explanation
         with gr.Tab("Narrate"):
             with gr.Row():
+                with gr.Column(scale=2):
+                    gr.Markdown("## 🎬 Demo Videos")
+
+                    # Video placeholder
+                    gr.Markdown("""
+                    <div style="text-align: center; padding: 40px; background-color: #f0f0f0; border-radius: 8px; margin: 20px 0;">
+                        <h3>📹 Demo Videos Coming Soon</h3>
+                        <p>I am preparing screen demonstration videos to showcase Vibe Narrator's workflow.</p>
+                        <p><em>Demo videos coming soon...</em></p>
+                    </div>
+                    """)
+
+                    # Placeholder for future YouTube video embedding
+                    # Uncomment and update when videos are ready:
+                    # gr.HTML("""
+                    # <div style="text-align: center; margin: 20px 0;">
+                    #     <iframe width="560" height="315"
+                    #             src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                    #             frameborder="0"
+                    #             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    #             allowfullscreen>
+                    #     </iframe>
+                    # </div>
+                    # """)
+
+                    gr.Markdown("## 📖 How It Works")
+
+                    with gr.Accordion("🔄 Workflow", open=True):
+                        gr.Markdown("""
+                        ### Terminal Agent Integration
+
+                        Vibe Narrator uses a **bridge tool** (`terminal_client/bridge.py`) to capture terminal output from your coding agents and convert it into stylized voice narration.
+
+                        **Process:**
+                        1. The bridge tool runs your terminal agent (e.g., `claude`, `cursor`, etc.) in a PTY (pseudo-terminal)
+                        2. Terminal output is captured and buffered
+                        3. Text chunks are sent to the MCP server via the `narrate_text` tool
+                        4. The LLM interprets the text in your chosen character's personality
+                        5. TTS generates audio with the character's voice
+                        6. Audio is played in real-time through your speakers
+
+                        This creates a seamless, hands-free narration experience during your coding sessions.
+                        """)
+
+                    with gr.Accordion("🔌 Bridge Tool", open=False):
+                        gr.Markdown("""
+                        ### What is the Bridge Tool?
+
+                        The bridge tool (`terminal_client/bridge.py`) is a Python script that:
+
+                        - **Captures terminal output**: Uses PTY to capture stdout/stderr from any command
+                        - **Cleans ANSI codes**: Removes terminal formatting codes for clean text
+                        - **Buffers intelligently**: Accumulates output before sending for narration
+                        - **Connects to MCP**: Uses the official MCP client SDK to communicate with the narrator server
+                        - **Plays audio**: Handles real-time audio playback as narration is generated
+
+                        **Usage Example:**
+                        ```bash
+                        uv run python bridge.py claude
+                        ```
+
+                        This runs the `claude` command with narration enabled. All agent output will be automatically narrated with your chosen character's voice.
+                        """)
+
+                    with gr.Accordion("🌐 Compatibility", open=False):
+                        gr.Markdown("""
+                        ### Terminal Agent Compatibility
+
+                        Vibe Narrator is compatible with any terminal-based agent through the MCP (Model Context Protocol) standard:
+
+                        - **Cursor**: Configure MCP server in Cursor settings
+                        - **Claude Desktop**: Add narrator-mcp to MCP servers configuration
+                        - **Custom Agents**: Any tool that supports MCP protocol
+                        - **Command-line Tools**: Use the bridge tool with any command
+
+                        The MCP protocol ensures universal compatibility - as long as your agent can communicate via MCP, Vibe Narrator can narrate its output.
+
+                        **Why MCP?**
+                        - Standard protocol for AI tool integration
+                        - Works across different platforms and agents
+                        - No vendor lock-in
+                        - Easy to configure and use
+                        """)
+
                 with gr.Column(scale=1):
-                    gr.Markdown("## 📝 Input")
+                    gr.Markdown("## 📝 Try It Out")
 
                     prompt_input = gr.Textbox(
                         label="Text to Narrate",
@@ -530,6 +728,364 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         label="Generated Text",
                         lines=12,
                         interactive=False,
+                    )
+
+        # Chat Tab
+        with gr.Tab("Chat"):
+            with gr.Row():
+                with gr.Column(scale=3):
+                    # Chat configuration state
+                    chat_character_state = gr.State(value=DEFAULT_CHARACTER)
+                    chat_model_state = gr.State(value=DEFAULT_MODEL)
+                    chat_tts_provider_state = gr.State(value="OpenAI TTS")
+                    chat_voice_state = gr.State(value=OPENAI_TTS_VOICE)
+
+                    # Chatbot component
+                    chatbot = gr.Chatbot(
+                        label="💬 Chat with Vibe Narrator",
+                        height=500,
+                    )
+
+                    # Hidden audio component for auto-play
+                    chat_audio_output = gr.Audio(
+                        type="filepath",
+                        visible=False,
+                    )
+
+                    # HTML component for audio auto-play
+                    chat_audio_html = gr.HTML(
+                        visible=True,  # Make visible for debugging
+                    )
+
+                    # Chat input - enable Enter to submit
+                    msg = gr.Textbox(
+                        label="Message",
+                        placeholder="Type your message here and press Enter to send...",
+                        lines=2,
+                    )
+
+                    # Chat function
+                    async def chat_function(message, history):
+                        """Chat function that generates response and audio."""
+                        if not message or not message.strip():
+                            return history, "", None, ""
+
+                        # Get configuration from state
+                        character = chat_character_state.value
+                        model = chat_model_state.value
+                        tts_provider = chat_tts_provider_state.value
+                        voice = chat_voice_state.value
+
+                        # Get API key
+                        llm_api_key = OPENAI_API_KEY
+                        if not llm_api_key:
+                            error_msg = "❌ Error: OPENAI_API_KEY not configured. Please set it in environment variables."
+                            new_history = _convert_history_to_dict_format(history)
+                            new_history.append({"role": "user", "content": message})
+                            new_history.append({"role": "assistant", "content": error_msg})
+                            return new_history, "", None, ""
+
+                        try:
+                            # Convert history format for LLM (expects old format)
+                            old_format_history = _convert_history_to_old_format(history)
+
+                            # Generate chat response using LLM
+                            ai_response = await generate_chat_response(
+                                message=message,
+                                history=old_format_history,
+                                character=character,
+                                model=model,
+                                llm_api_key=llm_api_key,
+                                base_url=_global_session.base_url,
+                                default_headers=_global_session.default_headers,
+                            )
+
+                            if not ai_response:
+                                new_history = _convert_history_to_dict_format(history)
+                                new_history.append({"role": "user", "content": message})
+                                new_history.append({"role": "assistant", "content": ""})
+                                return new_history, "", None, ""
+
+                            # Generate audio from AI response using MCP narrate_text
+                            # This will apply character styling to the response
+                            session = Session()
+                            session.llm_api_key = llm_api_key
+                            session.llm_model = model
+                            session.voice = voice
+                            session.mode = "chat"  # Use chat mode
+                            if character in CHARACTER_CHOICES:
+                                session.character = CHARACTER_CHOICES[character]
+                            else:
+                                session.character = character
+
+                            # Determine TTS provider and API key
+                            if tts_provider == "ElevenLabs TTS":
+                                tts_provider_value = "elevenlabs"
+                                tts_api_key = ELEVENLABS_API_KEY or llm_api_key
+                            else:
+                                tts_provider_value = "openai"
+                                tts_api_key = llm_api_key
+
+                            session.tts_api_key = tts_api_key
+                            session.tts_provider = tts_provider_value
+                            session.base_url = _global_session.base_url
+                            session.default_headers = _global_session.default_headers
+
+                            chunker = Chunker(max_tokens=12, sentence_boundary=True)
+                            ctx = AppContext(session=session, chunker=chunker)
+
+                            # Generate narration (audio) from AI response
+                            # In chat mode, generate_narration will re-process the text with character styling for audio
+                            # But we display the original ai_response in the chatbox
+                            styled_text, audio_bytes = await generate_narration(ctx, ai_response)
+
+                            # Use the original AI response for display (not the styled text from MCP)
+                            # The styled text is only used for audio generation with character voice
+                            new_history = _convert_history_to_dict_format(history)
+                            new_history.append({"role": "user", "content": message})
+                            new_history.append({"role": "assistant", "content": ai_response})
+
+                            # Save audio to temporary file for playback
+                            import tempfile
+                            import time
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+                                f.write(audio_bytes)
+                                audio_path = f.name
+
+                            # Create HTML with auto-play audio using base64 data URL
+                            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+                            audio_data_url = f"data:audio/mpeg;base64,{audio_base64}"
+                            audio_id = f"chat-audio-{int(time.time() * 1000000)}"
+
+                            audio_html = f"""
+                            <div id="audio-container-{audio_id}" style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; background: #f9f9f9;">
+                                <p><strong>Audio Debug Info:</strong></p>
+                                <p>Audio ID: {audio_id}</p>
+                                <p>Audio size: {len(audio_bytes)} bytes</p>
+                                <p id="audio-status-{audio_id}">Status: Loading...</p>
+                                <audio id="{audio_id}" controls autoplay preload="auto" style="width: 100%; margin-top: 10px;">
+                                    <source src="{audio_data_url}" type="audio/mpeg">
+                                </audio>
+                            </div>
+                            <script>
+                            (function() {{
+                                const audioId = '{audio_id}';
+                                console.log('🎵 Initializing audio:', audioId);
+
+                                function initAndPlay() {{
+                                    const audio = document.getElementById(audioId);
+                                    const statusEl = document.getElementById('audio-status-' + audioId);
+
+                                    if (!audio) {{
+                                        console.log('⏳ Audio element not found yet, retrying...');
+                                        setTimeout(initAndPlay, 100);
+                                        return;
+                                    }}
+
+                                    console.log('✅ Audio element found:', audioId);
+                                    if (statusEl) statusEl.textContent = 'Status: Found, initializing...';
+
+                                    // Stop all other playing audios
+                                    const allAudios = document.querySelectorAll('audio');
+                                    allAudios.forEach(a => {{
+                                        if (a !== audio && !a.paused) {{
+                                            console.log('⏹️ Stopping other audio:', a.id);
+                                            a.pause();
+                                            a.currentTime = 0;
+                                        }}
+                                    }});
+
+                                    // Event listeners
+                                    audio.addEventListener('canplay', () => {{
+                                        console.log('▶️ Audio can play:', audioId);
+                                        if (statusEl) statusEl.textContent = 'Status: Ready to play';
+                                        tryPlay();
+                                    }});
+
+                                    audio.addEventListener('play', () => {{
+                                        console.log('🎵 Audio playing:', audioId);
+                                        if (statusEl) statusEl.textContent = 'Status: Playing';
+                                    }});
+
+                                    audio.addEventListener('error', (e) => {{
+                                        console.error('❌ Audio error:', audioId, e, audio.error);
+                                        if (statusEl) statusEl.textContent = 'Status: ERROR - ' + (audio.error ? audio.error.message : 'Unknown');
+                                    }});
+
+                                    // Load and try to play
+                                    audio.load();
+                                    console.log('🔄 Audio loaded:', audioId);
+
+                                    // Try playing multiple times with delays
+                                    function tryPlay() {{
+                                        if (audio.paused) {{
+                                            const playPromise = audio.play();
+                                            if (playPromise !== undefined) {{
+                                                playPromise.then(() => {{
+                                                    console.log('✅ Audio playing successfully:', audioId);
+                                                    if (statusEl) statusEl.textContent = 'Status: Playing';
+                                                }}).catch(e => {{
+                                                    console.error('❌ Play prevented:', audioId, e);
+                                                    if (statusEl) statusEl.textContent = 'Status: Waiting for interaction';
+                                                    // Retry on interaction
+                                                    const retry = () => {{
+                                                        audio.play().catch(() => {{}});
+                                                        document.removeEventListener('click', retry);
+                                                        document.removeEventListener('keydown', retry);
+                                                    }};
+                                                    document.addEventListener('click', retry, {{ once: true }});
+                                                    document.addEventListener('keydown', retry, {{ once: true }});
+                                                }});
+                                            }}
+                                        }}
+                                    }}
+
+                                    // Try immediately and with delays
+                                    setTimeout(tryPlay, 100);
+                                    setTimeout(tryPlay, 300);
+                                    setTimeout(tryPlay, 500);
+                                }}
+
+                                // Start initialization
+                                if (document.readyState === 'loading') {{
+                                    document.addEventListener('DOMContentLoaded', initAndPlay);
+                                }} else {{
+                                    setTimeout(initAndPlay, 50);
+                                }}
+                            }})();
+                            </script>
+                            """
+
+                            return new_history, "", audio_path, audio_html
+
+                        except Exception as e:
+                            import traceback
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            error_msg = f"❌ Error: {str(e)}"
+                            error_trace = traceback.format_exc()
+                            logger.error(f"Chat function error: {error_msg}\n{error_trace}")
+                            new_history = _convert_history_to_dict_format(history)
+                            new_history.append({"role": "user", "content": message})
+                            new_history.append({"role": "assistant", "content": error_msg})
+                            return new_history, "", None, ""
+
+                    # Submit button
+                    submit_btn = gr.Button("Send", variant="primary")
+                    clear_btn = gr.Button("Clear")
+
+                    # Event handlers
+                    msg.submit(
+                        fn=chat_function,
+                        inputs=[msg, chatbot],
+                        outputs=[chatbot, msg, chat_audio_output, chat_audio_html],
+                    )
+
+                    submit_btn.click(
+                        fn=chat_function,
+                        inputs=[msg, chatbot],
+                        outputs=[chatbot, msg, chat_audio_output, chat_audio_html],
+                    )
+
+                    clear_btn.click(
+                        fn=lambda: ([], ""),
+                        outputs=[chatbot, msg],
+                    )
+
+                with gr.Column(scale=1):
+                    gr.Markdown("## ⚙️ Configuration")
+
+                    chat_character_radio = gr.Radio(
+                        label="Character",
+                        choices=list(CHARACTER_CHOICES.keys()),
+                        value=DEFAULT_CHARACTER,
+                    )
+
+                    def update_chat_character(selected_character):
+                        chat_character_state.value = selected_character
+                        return selected_character
+
+                    chat_character_radio.change(
+                        fn=update_chat_character,
+                        inputs=[chat_character_radio],
+                        outputs=[],
+                    )
+
+                    chat_model_dropdown = gr.Dropdown(
+                        label="LLM Model",
+                        choices=MODEL_OPTIONS,
+                        value=DEFAULT_MODEL,
+                        info="GPT model for chat",
+                        allow_custom_value=False,
+                    )
+
+                    def update_chat_model(selected_model):
+                        chat_model_state.value = selected_model
+                        return selected_model
+
+                    chat_model_dropdown.change(
+                        fn=update_chat_model,
+                        inputs=[chat_model_dropdown],
+                        outputs=[],
+                    )
+
+                    chat_tts_provider_dropdown = gr.Dropdown(
+                        label="TTS Provider",
+                        choices=TTS_PROVIDER_OPTIONS,
+                        value="OpenAI TTS",
+                        info="Choose TTS service provider",
+                        allow_custom_value=False,
+                    )
+
+                    def update_chat_tts_provider(selected_provider):
+                        chat_tts_provider_state.value = selected_provider
+                        return selected_provider
+
+                    chat_tts_provider_dropdown.change(
+                        fn=update_chat_tts_provider,
+                        inputs=[chat_tts_provider_dropdown],
+                        outputs=[],
+                    )
+
+                    chat_voice_dropdown = gr.Dropdown(
+                        label="Voice",
+                        choices=VOICE_OPTIONS,
+                        value=OPENAI_TTS_VOICE,
+                        info="TTS voice selection",
+                        allow_custom_value=False,
+                    )
+
+                    def update_chat_voice(selected_voice):
+                        chat_voice_state.value = selected_voice
+                        return selected_voice
+
+                    chat_voice_dropdown.change(
+                        fn=update_chat_voice,
+                        inputs=[chat_voice_dropdown],
+                        outputs=[],
+                    )
+
+                    # Update voice dropdown when TTS provider changes
+                    async def update_chat_voice_options(tts_provider: str):
+                        if tts_provider == "ElevenLabs TTS":
+                            return gr.Dropdown(
+                                choices=[],
+                                value=None,
+                                visible=False,
+                                info="Voice is automatically selected based on character",
+                            )
+                        else:
+                            return gr.Dropdown(
+                                choices=VOICE_OPTIONS,
+                                value=OPENAI_TTS_VOICE,
+                                visible=True,
+                                info="OpenAI TTS voice selection",
+                            )
+
+                    chat_tts_provider_dropdown.change(
+                        fn=update_chat_voice_options,
+                        inputs=[chat_tts_provider_dropdown],
+                        outputs=[chat_voice_dropdown],
                     )
 
         # MCP Info Tab
