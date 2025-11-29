@@ -16,6 +16,7 @@ from typing import Any, AsyncIterator
 
 import openai
 from fastmcp import FastMCP
+from fastmcp.server.context import Context
 
 # Support both relative imports (when imported as package) and absolute imports (when run directly)
 try:
@@ -90,6 +91,14 @@ class AppContext:
 
 # Global context (set by lifespan)
 _app_context: AppContext | None = None
+
+
+def _clone_chunker(template: Chunker) -> Chunker:
+    """Create a fresh chunker based on template settings."""
+    return Chunker(
+        max_tokens=template.max_tokens,
+        sentence_boundary=template.sentence_boundary,
+    )
 
 
 @asynccontextmanager
@@ -188,32 +197,71 @@ async def configure(
     return "Configuration updated successfully"
 
 
+async def _emit_progress_chunk(
+    context: Context | None,
+    chunk_index: int,
+    text_chunk: str,
+    audio_chunk: bytes,
+) -> None:
+    """Send a streaming chunk over MCP progress notifications."""
+    if context is None:
+        return
+    if not audio_chunk and not text_chunk:
+        return
+
+    payload = {
+        "type": "chunk",
+        "index": chunk_index,
+        "text": text_chunk,
+        "audio": base64.b64encode(audio_chunk).decode("utf-8") if audio_chunk else "",
+        "format": "mp3",
+    }
+    try:
+        await context.report_progress(
+            progress=chunk_index,
+            total=None,
+            message=json.dumps(payload, ensure_ascii=False),
+        )
+    except Exception as exc:
+        narrate_logger.debug(f"⚠️ Failed to emit progress chunk: {exc}")
+
+
 @mcp.tool()
-async def narrate_text(prompt: str) -> str:
-    """Convert text to narrated speech using LLM and TTS."""
-    ctx = get_context()
+async def narrate_text(prompt: str, context: Context | None = None) -> str:
+    """Convert text to narrated speech using LLM and TTS with streaming progress updates."""
+    app_ctx = get_context()
 
     if not prompt:
         raise ValueError("Missing prompt parameter")
-    if not ctx.session.llm_api_key:
+    if not app_ctx.session.llm_api_key:
         raise ValueError("Not configured. Call 'configure' tool first")
-    if not ctx.session.tts_api_key:
+    if not app_ctx.session.tts_api_key:
         raise ValueError("Not configured. Call 'configure' tool first")
 
     logging.info("🎧 Narrate request received")
     narrate_logger.info(f"📝 Narrate text:\n{prompt}")
 
-    # Generate narration
-    text, audio_bytes = await generate_narration(ctx, prompt)
+    text_chunks: list[str] = []
+    audio_chunks: list[bytes] = []
+    chunk_index = 0
 
-    # Return as JSON with base64-encoded audio
+    async for text_chunk, audio_chunk in generate_narration_stream(app_ctx, prompt):
+        chunk_index += 1
+        text_chunks.append(text_chunk)
+        audio_chunks.append(audio_chunk)
+        await _emit_progress_chunk(context, chunk_index, text_chunk, audio_chunk)
+
+    full_text = "".join(text_chunks)
+    full_audio = b"".join(audio_chunks)
+
+    # Return as JSON with base64-encoded audio (backwards compatible)
     result = {
-        "text": text,
-        "audio": base64.b64encode(audio_bytes).decode('utf-8'),
-        "format": "mp3"
+        "text": full_text,
+        "audio": base64.b64encode(full_audio).decode("utf-8"),
+        "format": "mp3",
     }
 
-    logging.info(f"✅ Narration complete: {len(text)} chars, {len(audio_bytes)} bytes audio")
+    logging.info(f"✅ Narration complete: {len(full_text)} chars, {len(full_audio)} bytes audio")
 
     return json.dumps(result)
 
@@ -343,6 +391,7 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
     Returns (generated_text, audio_mp3_bytes)
     """
     character = get_character(ctx.session.character)
+    chunker = _clone_chunker(ctx.chunker)
 
     tts_queue: asyncio.Queue[str | None] = asyncio.Queue()
     generated_text_tokens: list[str] = []
@@ -376,54 +425,32 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 # Temporarily disabled max_tokens for testing
                 # stream_params["max_tokens"] = MAX_TOKENS_CHAT
 
-            # Stream LLM tokens
-            # Cache the last block to ensure it's complete before sending to TTS
-            last_block: str | None = None
-
             async for token in stream_llm(**stream_params):
                 token_count += 1
                 narrate_logger.debug(f"📝 LLM token #{token_count}: {repr(token)}")
                 generated_text_tokens.append(token)
 
                 # Chunk tokens for TTS
-                block = ctx.chunker.add_token(token)
+                block = chunker.add_token(token)
                 if block:
                     if _is_valid_output(block):
-                        # If we have a cached last block, send it now (it's complete)
-                        if last_block:
-                            narrate_logger.info(f"📦 Chunk ready for TTS ({len(last_block)} chars): {repr(last_block)}")
-                            await tts_queue.put(last_block)
-                        # Cache the current block (might be the last one)
-                        last_block = block
+                        narrate_logger.info(f"📦 Chunk ready for TTS ({len(block)} chars): {repr(block)}")
+                        await tts_queue.put(block)
                     else:
                         narrate_logger.info(f"⏭️ Skipping invalid/empty chunk: {repr(block)}")
 
             narrate_logger.info(f"✅ LLM streaming complete ({token_count} tokens)")
 
             # Flush remaining tokens
-            leftover = ctx.chunker.flush()
+            leftover = chunker.flush()
 
-            # Combine last_block and leftover, then ensure it's a complete sentence
-            final_block = ""
-            if last_block:
-                final_block = last_block
             if leftover:
-                final_block += leftover
-
-            if final_block:
-                # Apply truncate_to_complete_sentence to ensure completeness
-                final_block = truncate_to_complete_sentence(final_block)
+                final_block = truncate_to_complete_sentence(leftover)
                 if final_block and _is_valid_output(final_block):
                     narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
                     await tts_queue.put(final_block)
                 else:
                     narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk after truncation: {repr(final_block)}")
-            elif last_block:
-                # If we only had last_block (no leftover), still apply truncate
-                final_block = truncate_to_complete_sentence(last_block)
-                if final_block and _is_valid_output(final_block):
-                    narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
-                    await tts_queue.put(final_block)
 
             await tts_queue.put(None)  # Signal completion
 
@@ -583,6 +610,7 @@ async def generate_narration_stream(
     This allows for progressive playback while generation is still in progress.
     """
     character = get_character(ctx.session.character)
+    chunker = _clone_chunker(ctx.chunker)
 
     tts_queue: asyncio.Queue[str | None] = asyncio.Queue()
     generated_text_tokens: list[str] = []
@@ -616,54 +644,32 @@ async def generate_narration_stream(
                 # Temporarily disabled max_tokens for testing
                 # stream_params["max_tokens"] = MAX_TOKENS_CHAT
 
-            # Stream LLM tokens
-            # Cache the last block to ensure it's complete before sending to TTS
-            last_block: str | None = None
-
             async for token in stream_llm(**stream_params):
                 token_count += 1
                 narrate_logger.debug(f"📝 LLM token #{token_count}: {repr(token)}")
                 generated_text_tokens.append(token)
 
                 # Chunk tokens for TTS
-                block = ctx.chunker.add_token(token)
+                block = chunker.add_token(token)
                 if block:
                     if _is_valid_output(block):
-                        # If we have a cached last block, send it now (it's complete)
-                        if last_block:
-                            narrate_logger.info(f"📦 Chunk ready for TTS ({len(last_block)} chars): {repr(last_block)}")
-                            await tts_queue.put(last_block)
-                        # Cache the current block (might be the last one)
-                        last_block = block
+                        narrate_logger.info(f"📦 Chunk ready for TTS ({len(block)} chars): {repr(block)}")
+                        await tts_queue.put(block)
                     else:
                         narrate_logger.info(f"⏭️ Skipping invalid/empty chunk: {repr(block)}")
 
             narrate_logger.info(f"✅ LLM streaming complete ({token_count} tokens)")
 
             # Flush remaining tokens
-            leftover = ctx.chunker.flush()
+            leftover = chunker.flush()
 
-            # Combine last_block and leftover, then ensure it's a complete sentence
-            final_block = ""
-            if last_block:
-                final_block = last_block
             if leftover:
-                final_block += leftover
-
-            if final_block:
-                # Apply truncate_to_complete_sentence to ensure completeness
-                final_block = truncate_to_complete_sentence(final_block)
+                final_block = truncate_to_complete_sentence(leftover)
                 if final_block and _is_valid_output(final_block):
                     narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
                     await tts_queue.put(final_block)
                 else:
                     narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk after truncation: {repr(final_block)}")
-            elif last_block:
-                # If we only had last_block (no leftover), still apply truncate
-                final_block = truncate_to_complete_sentence(last_block)
-                if final_block and _is_valid_output(final_block):
-                    narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
-                    await tts_queue.put(final_block)
 
             await tts_queue.put(None)  # Signal completion
 

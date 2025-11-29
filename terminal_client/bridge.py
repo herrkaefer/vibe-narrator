@@ -534,11 +534,50 @@ class MCPBridge:
         logger.info(f"📤 Sending narration request #{self.narrations_sent}:\n{text}")
 
         try:
+            streaming_chunks = 0
+
+            async def progress_handler(progress, total, message):
+                nonlocal streaming_chunks
+                if not message:
+                    return
+                try:
+                    payload = json.loads(message)
+                except json.JSONDecodeError:
+                    logger.debug(f"⚠️ Failed to parse progress payload: {message}")
+                    return
+
+                if payload.get("type") != "chunk":
+                    return
+
+                chunk_index = payload.get("index") or (streaming_chunks + 1)
+                chunk_text = (payload.get("text") or "").strip()
+                audio_b64 = payload.get("audio") or ""
+
+                if chunk_text:
+                    preview = chunk_text if len(chunk_text) <= 120 else chunk_text[:117] + "..."
+                    logger.info(f"🗣️ Stream chunk #{chunk_index}: {preview}")
+
+                if not audio_b64:
+                    return
+
+                try:
+                    audio_bytes = base64.b64decode(audio_b64)
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to decode streaming audio chunk #{chunk_index}: {e}")
+                    return
+
+                self.audio_player.add_chunk(audio_bytes)
+                streaming_chunks += 1
+
             # Call narrate_text tool (resolved based on available tools)
             tool_name = self.tool_names.get("narrate_text", "narrate_text")
             logger.info(f"🎤 Using narrate_text tool: {tool_name}")
             try:
-                result = await self.client.call_tool(tool_name, {"prompt": text})
+                result = await self.client.call_tool(
+                    tool_name,
+                    {"prompt": text},
+                    progress_handler=progress_handler,
+                )
             except ToolError as e:
                 # Log detailed error information
                 error_detail = str(e)
@@ -624,19 +663,19 @@ class MCPBridge:
                     logger.warning(f"⚠️ Failed to decode audio base64: {e}")
                     audio_bytes = b''
 
-            if len(audio_bytes) > 0:
+            if len(audio_bytes) > 0 and streaming_chunks == 0:
                 self.audio_player.add_chunk(audio_bytes)
-                self.narrations_completed += 1
+
+            self.narrations_completed += 1
+            if streaming_chunks > 0:
+                logger.info(
+                    f"✅ Narration #{self.narrations_completed} complete: "
+                    f"{len(generated_text)} chars, streamed {streaming_chunks} chunk(s)"
+                )
+            else:
                 logger.info(
                     f"✅ Narration #{self.narrations_completed} complete: "
                     f"{len(generated_text)} chars, {len(audio_bytes)} bytes {audio_format}"
-                )
-            else:
-                # No audio generated (e.g., LLM returned empty string)
-                self.narrations_completed += 1
-                logger.info(
-                    f"✅ Narration #{self.narrations_completed} complete: "
-                    f"{len(generated_text)} chars, 0 bytes {audio_format} (no audio generated)"
                 )
 
         except Exception as e:
