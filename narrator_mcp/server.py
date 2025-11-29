@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncIterator
 
 import openai
 from fastmcp import FastMCP
@@ -479,6 +479,181 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
     full_audio = b''.join(audio_chunks)
 
     return full_text, full_audio
+
+
+async def generate_narration_stream(
+    ctx: AppContext, prompt: str
+) -> AsyncIterator[tuple[str, bytes]]:
+    """
+    Generate narrated speech from text prompt with streaming output.
+    Yields (text_chunk, audio_chunk) tuples as they become available.
+
+    This allows for progressive playback while generation is still in progress.
+    """
+    character = get_character(ctx.session.character)
+
+    tts_queue: asyncio.Queue[str | None] = asyncio.Queue()
+    generated_text_tokens: list[str] = []
+    audio_output_queue: asyncio.Queue[tuple[str, bytes] | None] = asyncio.Queue()
+
+    async def run_llm() -> None:
+        """Stream LLM tokens and chunk for TTS."""
+        try:
+            token_count = 0
+
+            # Prepare stream parameters
+            stream_params: dict[str, Any] = {
+                "prompt": prompt,
+                "api_key": ctx.session.llm_api_key,
+                "model": ctx.session.llm_model,
+                "character": character
+            }
+
+            if ctx.session.base_url:
+                stream_params["base_url"] = ctx.session.base_url
+            if ctx.session.default_headers:
+                stream_params["default_headers"] = ctx.session.default_headers
+
+            # Select system prompt and max tokens based on mode
+            if ctx.session.mode == "narration":
+                stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
+                stream_params["max_tokens"] = 25
+            else:  # chat mode
+                stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
+                stream_params["max_tokens"] = 20
+
+            # Stream LLM tokens
+            async for token in stream_llm(**stream_params):
+                token_count += 1
+                narrate_logger.debug(f"📝 LLM token #{token_count}: {repr(token)}")
+                generated_text_tokens.append(token)
+
+                # Chunk tokens for TTS
+                block = ctx.chunker.add_token(token)
+                if block:
+                    if _is_valid_output(block):
+                        narrate_logger.info(f"📦 Chunk ready for TTS ({len(block)} chars): {repr(block)}")
+                        await tts_queue.put(block)
+                    else:
+                        narrate_logger.info(f"⏭️ Skipping invalid/empty chunk: {repr(block)}")
+
+            narrate_logger.info(f"✅ LLM streaming complete ({token_count} tokens)")
+
+            # Flush remaining tokens
+            leftover = ctx.chunker.flush()
+            if leftover:
+                if _is_valid_output(leftover):
+                    narrate_logger.info(f"📦 Final chunk for TTS ({len(leftover)} chars): {repr(leftover)}")
+                    await tts_queue.put(leftover)
+                else:
+                    narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk: {repr(leftover)}")
+
+            await tts_queue.put(None)  # Signal completion
+
+        except (openai.RateLimitError, openai.APIError) as e:
+            error_details = [f"OpenAI API error: {str(e)}"]
+            if hasattr(e, 'status_code'):
+                error_details.append(f"Status code: {e.status_code}")
+            if hasattr(e, 'code'):
+                error_details.append(f"Error code: {e.code}")
+            error_msg = " | ".join(error_details)
+            narrate_logger.error(f"❌ LLM error: {error_msg}")
+            logging.error(f"❌ LLM error: {error_msg}")
+            await tts_queue.put(None)
+            await audio_output_queue.put(None)
+            raise
+        except Exception as e:
+            error_msg = f"LLM error: {str(e)}"
+            narrate_logger.error(f"❌ {error_msg}", exc_info=True)
+            logging.error(f"❌ {error_msg}", exc_info=True)
+            await tts_queue.put(None)
+            await audio_output_queue.put(None)
+            raise
+
+    async def run_tts() -> None:
+        """Stream TTS audio for each text chunk and put in output queue."""
+        try:
+            tts_chunk_count = 0
+
+            while True:
+                block = await tts_queue.get()
+                if block is None:
+                    break
+
+                tts_chunk_count += 1
+                narrate_logger.info(f"🎤 Sending to TTS #{tts_chunk_count} ({len(block)} chars): {repr(block)}")
+
+                # Accumulate audio chunks for this text block
+                audio_buffer = bytearray()
+                audio_fragment_count = 0
+
+                # TTS supports both OpenAI and ElevenLabs
+                tts_provider = ctx.session.tts_provider or "openai"
+                if tts_provider == "elevenlabs":
+                    tts_voice = character.elevenlabs_voice_id
+                    tts_instructions = None
+                else:
+                    tts_voice = ctx.session.voice
+                    tts_instructions = character.openai_tts_instructions
+
+                tts_params = {
+                    "text_block": block,
+                    "api_key": ctx.session.tts_api_key or ctx.session.llm_api_key,
+                    "voice": tts_voice,
+                    "instructions": tts_instructions,
+                    "tts_provider": tts_provider,
+                }
+
+                async for audio_chunk in stream_tts(**tts_params):
+                    audio_fragment_count += 1
+                    audio_buffer.extend(audio_chunk)
+                    narrate_logger.debug(f"   🎵 Audio fragment #{audio_fragment_count}: {len(audio_chunk)} bytes")
+
+                if audio_buffer:
+                    narrate_logger.info(
+                        f"   ✅ Complete MP3 #{tts_chunk_count}: {len(audio_buffer)} bytes "
+                        f"(from {audio_fragment_count} fragments)"
+                    )
+                    # Put audio chunk in output queue for streaming
+                    await audio_output_queue.put((block, bytes(audio_buffer)))
+
+        except (openai.RateLimitError, openai.APIError) as e:
+            error_details = [f"OpenAI TTS API error: {str(e)}"]
+            if hasattr(e, 'status_code'):
+                error_details.append(f"Status code: {e.status_code}")
+            if hasattr(e, 'code'):
+                error_details.append(f"Error code: {e.code}")
+            error_msg = " | ".join(error_details)
+            narrate_logger.error(f"❌ TTS error: {error_msg}")
+            logging.error(f"❌ TTS error: {error_msg}")
+            await audio_output_queue.put(None)
+            raise
+        except Exception as e:
+            error_msg = f"TTS error: {str(e)}"
+            narrate_logger.error(f"❌ {error_msg}", exc_info=True)
+            logging.error(f"❌ {error_msg}", exc_info=True)
+            await audio_output_queue.put(None)
+            raise
+        finally:
+            # Signal completion
+            await audio_output_queue.put(None)
+
+    # Start LLM and TTS tasks
+    llm_task = asyncio.create_task(run_llm())
+    tts_task = asyncio.create_task(run_tts())
+
+    # Stream audio chunks as they become available
+    try:
+        while True:
+            chunk_data = await audio_output_queue.get()
+            if chunk_data is None:
+                break
+
+            text_chunk, audio_chunk = chunk_data
+            yield text_chunk, audio_chunk
+    finally:
+        # Wait for tasks to complete
+        await asyncio.gather(llm_task, tts_task, return_exceptions=True)
 
 
 if __name__ == "__main__":

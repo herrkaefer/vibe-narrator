@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Import underlying functions and classes
-from narrator_mcp.server import generate_narration, AppContext
+from narrator_mcp.server import generate_narration, generate_narration_stream, AppContext
 from narrator_mcp.characters import get_characters_list, get_character
 from narrator_mcp.session import Session, DEFAULT_MODEL, DEFAULT_VOICE, DEFAULT_MODE
 from narrator_mcp.chunker import Chunker
@@ -732,6 +732,12 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         interactive=False,
                     )
 
+                    # HTML component for streaming audio playback
+                    streaming_audio_html = gr.HTML(
+                        label="Streaming Audio",
+                        visible=True,
+                    )
+
                     text_output = gr.Textbox(
                         label="Generated Text",
                         lines=12,
@@ -1234,9 +1240,201 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
         return audio_path, f"✨ Generated narration:\n\n{generated_text}"
 
-    # Connect the narration handler
+    # Stream version for progressive audio playback
+    async def narrate_text_ui_stream(
+        prompt: str,
+        character: str,
+        voice: str,  # Legacy, not used but kept for compatibility
+        model: str,
+        tts_provider: str,
+        unified_voice: str,
+    ):
+        """Streaming UI wrapper that yields audio chunks as they become available."""
+        # Convert empty strings to None
+        voice_val = unified_voice.strip() if unified_voice and unified_voice.strip() else None
+
+        # Determine which provider-specific voice parameter to use
+        openai_voice_val = None
+        elevenlabs_voice_val = None
+
+        if tts_provider == "ElevenLabs TTS":
+            elevenlabs_voice_val = voice_val
+        else:
+            openai_voice_val = voice_val
+
+        # Get API key
+        final_llm_api_key = OPENAI_API_KEY
+        if not final_llm_api_key:
+            yield None, "❌ Error: OPENAI_API_KEY not configured. Please set it in environment variables."
+            return
+
+        # Determine TTS provider and API key
+        tts_provider_value = None
+        if tts_provider == "ElevenLabs TTS":
+            tts_provider_value = "elevenlabs"
+            final_tts_api_key = ELEVENLABS_API_KEY
+            if not final_tts_api_key:
+                yield None, "❌ Error: ELEVENLABS_API_KEY not provided."
+                return
+        else:
+            tts_provider_value = "openai"
+            final_tts_api_key = final_llm_api_key
+
+        # Handle character
+        if character in CHARACTER_CHOICES:
+            final_character_id = CHARACTER_CHOICES[character]
+        else:
+            final_character_id = character or "reluctant_developer"
+
+        # Handle voice
+        if tts_provider_value == "elevenlabs":
+            if elevenlabs_voice_val:
+                from narrator_mcp.characters import get_character
+                char_obj = get_character(final_character_id)
+                final_voice = char_obj.elevenlabs_voice_id
+            else:
+                final_voice = None
+        else:
+            final_voice = openai_voice_val or OPENAI_TTS_VOICE
+
+        try:
+            # Create session
+            session = Session()
+            session.llm_api_key = final_llm_api_key
+            session.llm_model = model or DEFAULT_MODEL
+            session.voice = final_voice
+            session.mode = "narration"
+            session.character = final_character_id
+            session.tts_api_key = final_tts_api_key
+            session.tts_provider = tts_provider_value
+
+            chunker = Chunker(max_tokens=12, sentence_boundary=True)
+            ctx = AppContext(session=session, chunker=chunker)
+
+            # Stream narration chunks
+            import tempfile
+            import time
+            accumulated_text = []
+            audio_chunks_base64 = []
+            chunk_index = 0
+            # Use a fixed base timestamp for consistent IDs
+            base_timestamp = int(time.time() * 1000000)
+
+            async for text_chunk, audio_chunk in generate_narration_stream(ctx, prompt):
+                accumulated_text.append(text_chunk)
+                audio_base64 = base64.b64encode(audio_chunk).decode('utf-8')
+                audio_chunks_base64.append(audio_base64)
+                chunk_index += 1
+
+                # Create HTML with streaming audio player - accumulate all chunks
+                full_text = "".join(accumulated_text)
+
+                # Build HTML with all audio chunks so far
+                audio_html_parts = []
+                for i, (txt_chunk, audio_b64) in enumerate(zip(accumulated_text, audio_chunks_base64)):
+                    chunk_audio_id = f"stream-audio-{base_timestamp}-{i+1}"
+                    chunk_audio_url = f"data:audio/mpeg;base64,{audio_b64}"
+                    audio_html_parts.append(f"""
+                    <div id="audio-container-{chunk_audio_id}" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;">Chunk {i+1}: "{txt_chunk}"</p>
+                        <audio id="{chunk_audio_id}" controls preload="auto" style="width: 100%;">
+                            <source src="{chunk_audio_url}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                    """)
+
+                # Latest audio ID matches the last chunk in the loop
+                latest_audio_id = f"stream-audio-{base_timestamp}-{chunk_index}"
+                audio_html = f"""
+                <div id="streaming-audio-container" style="max-height: 400px; overflow-y: auto;">
+                    {'<hr style="margin: 10px 0;">'.join(audio_html_parts)}
+                </div>
+                <script>
+                (function() {{
+                    // Use setTimeout to ensure DOM is updated
+                    setTimeout(function() {{
+                        // Auto-play the latest audio chunk
+                        const latestAudioId = '{latest_audio_id}';
+                        const latestAudio = document.getElementById(latestAudioId);
+
+                        console.log('🎵 Looking for audio:', latestAudioId, 'Found:', latestAudio);
+
+                        if (latestAudio) {{
+                            // Stop all other playing audios
+                            const allAudios = document.querySelectorAll('#streaming-audio-container audio');
+                            allAudios.forEach(a => {{
+                                if (a.id !== latestAudioId && !a.paused) {{
+                                    console.log('⏹️ Stopping audio:', a.id);
+                                    a.pause();
+                                    a.currentTime = 0;
+                                }}
+                            }});
+
+                            // Remove existing event listeners by cloning the element
+                            const newAudio = latestAudio.cloneNode(true);
+                            latestAudio.parentNode.replaceChild(newAudio, latestAudio);
+
+                            // Auto-play latest when ready
+                            newAudio.addEventListener('canplay', function() {{
+                                console.log('▶️ Audio can play:', latestAudioId);
+                                newAudio.play().catch(e => console.log('Auto-play prevented:', e));
+                            }}, {{ once: true }});
+
+                            // Also try to play immediately if already loaded
+                            if (newAudio.readyState >= 2) {{
+                                console.log('▶️ Audio already loaded, playing immediately');
+                                newAudio.play().catch(e => console.log('Auto-play prevented:', e));
+                            }}
+
+                            // Load the audio
+                            newAudio.load();
+
+                            // Scroll to bottom to show latest chunk
+                            const container = document.getElementById('streaming-audio-container');
+                            if (container) {{
+                                container.scrollTop = container.scrollHeight;
+                            }}
+                        }} else {{
+                            console.warn('⚠️ Audio element not found:', latestAudioId);
+                            // Retry after a short delay
+                            setTimeout(function() {{
+                                const retryAudio = document.getElementById(latestAudioId);
+                                if (retryAudio) {{
+                                    console.log('✅ Found audio on retry:', latestAudioId);
+                                    retryAudio.play().catch(e => console.log('Auto-play prevented:', e));
+                                }}
+                            }}, 200);
+                        }}
+                    }}, 100);
+                }})();
+                </script>
+                """
+
+                # Save current accumulated audio to temp file for Gradio Audio component
+                # (for compatibility, but streaming HTML will handle playback)
+                combined_audio = b''.join([base64.b64decode(chunk) for chunk in audio_chunks_base64])
+                temp_audio_path = None
+                if combined_audio:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+                        f.write(combined_audio)
+                        temp_audio_path = f.name
+
+                # Yield progressive updates
+                yield (
+                    temp_audio_path,
+                    f"✨ Streaming narration (chunk {chunk_index}):\n\n{full_text}",
+                    audio_html
+                )
+
+        except Exception as e:
+            import traceback
+            error_msg = f"❌ Error: {str(e)}"
+            logger.error(f"Narration stream error: {error_msg}\n{traceback.format_exc()}")
+            yield None, error_msg, ""
+
+    # Connect the narration handler - use streaming version
     narrate_btn.click(
-        fn=narrate_text_ui,
+        fn=narrate_text_ui_stream,
         inputs=[
             prompt_input,
             character_state,
@@ -1245,7 +1443,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
             tts_provider_input,
             voice_dropdown_unified,
         ],
-        outputs=[audio_output, text_output],
+        outputs=[audio_output, text_output, streaming_audio_html],
     )
 
     # Update UI when TTS provider changes and auto-load voices
