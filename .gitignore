@@ -39,6 +39,7 @@ venv.bak/
 *.log
 logs/
 narrator_mcp/logs/
+terminal_client/logs/
 
 # IDE
 .vscode/
@@ -79,4 +80,7 @@ Thumbs.db
 # Gradio
 flagged/
 gradio_cached_examples/
+
+# Development files
+terminal_client/dev.md
 

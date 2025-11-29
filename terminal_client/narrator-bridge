@@ -1,0 +1,29 @@
+#!/bin/bash
+# narrator-bridge - Run coding agent with narration
+# Usage: narrator-bridge [--use-stdio] <command> [args...]
+#
+# This script can be run from any directory.
+# The command will execute in the current working directory.
+#
+# Options:
+#   --use-stdio    Use stdio transport for local MCP server (default: streamable-http for remote)
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLIENT_DIR="$SCRIPT_DIR"
+
+if [ ! -f "$CLIENT_DIR/bridge.py" ]; then
+    echo "Error: bridge.py not found in $CLIENT_DIR" >&2
+    exit 1
+fi
+
+# Save the current working directory (where the user ran the command from)
+# This will be used by Python to run the command in the correct directory
+export ORIGINAL_CWD="$(pwd)"
+
+# Use --directory to specify where to find dependencies (narrator-client)
+# but preserve current working directory for the command
+# Pass all arguments through to bridge.py
+uv run --directory "$CLIENT_DIR" python "$CLIENT_DIR/bridge.py" "$@"
+
+
