@@ -162,8 +162,8 @@ logger.info(f"📝 Logging to file: {log_file}")
 class MCPBridge:
     """MCP client bridge using FastMCP with streamable-http or stdio transport.
 
-    By default, the bridge starts a local narrator MCP server from the hfspace
-    submodule (either via stdio or local HTTP). If the environment variable
+    By default, the bridge starts a local narrator MCP server from the
+    narrator_mcp directory (either via stdio or local HTTP). If the environment variable
     ``NARRATOR_REMOTE_MCP_URL`` is set, the bridge will instead connect to that
     remote MCP endpoint and will not start any local server.
     """
@@ -211,7 +211,7 @@ class MCPBridge:
         # Get project root (parent of narrator-client)
         client_dir = Path(__file__).parent.absolute()
         project_root = client_dir.parent
-        narrator_path = project_root / "hfspace" / "narrator_mcp" / "server.py"
+        narrator_path = project_root / "narrator_mcp" / "server.py"
 
         # Remote mode: connect to existing MCP endpoint
         if self.remote_mcp_url:
