@@ -18,12 +18,14 @@ import time
 import tty
 import unicodedata
 from datetime import datetime
+from typing import Any
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from dotenv import load_dotenv
 import httpx
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from audio_player import AudioPlayer
 
@@ -158,7 +160,13 @@ logger.info(f"📝 Logging to file: {log_file}")
 
 
 class MCPBridge:
-    """MCP client bridge using FastMCP with streamable-http or stdio transport."""
+    """MCP client bridge using FastMCP with streamable-http or stdio transport.
+
+    By default, the bridge starts a local narrator MCP server from the hfspace
+    submodule (either via stdio or local HTTP). If the environment variable
+    ``NARRATOR_REMOTE_MCP_URL`` is set, the bridge will instead connect to that
+    remote MCP endpoint and will not start any local server.
+    """
 
     def __init__(self, api_key=None, model=None, voice=None, mode=None,
                  character=None, base_url=None, default_headers=None, tts_api_key=None,
@@ -175,6 +183,13 @@ class MCPBridge:
         self.tts_provider = tts_provider
         self.use_stdio = use_stdio  # New parameter
 
+        # Optional remote MCP endpoint. When set, the bridge connects to this
+        # URL instead of starting a local MCP server.
+        self.remote_mcp_url = os.getenv("NARRATOR_REMOTE_MCP_URL")
+
+        # Logical-to-actual MCP tool name mapping (populated after connect)
+        self.tool_names: dict[str, str] = {}
+
         # Will be initialized in async context
         self.client: Client | None = None
         self.server_process: subprocess.Popen | None = None
@@ -186,63 +201,87 @@ class MCPBridge:
         self.narrations_completed = 0
 
     async def __aenter__(self):
-        """Initialize MCP client connection."""
+        """Initialize MCP client connection.
+
+        If ``NARRATOR_REMOTE_MCP_URL`` is set, connect to that remote MCP
+        endpoint via streamable-http without starting any local server.
+        Otherwise, start and connect to the local narrator MCP server
+        (either via stdio or local HTTP).
+        """
         # Get project root (parent of narrator-client)
         client_dir = Path(__file__).parent.absolute()
         project_root = client_dir.parent
         narrator_path = project_root / "hfspace" / "narrator_mcp" / "server.py"
 
-        if not narrator_path.exists():
-            raise FileNotFoundError(
-                f"Could not locate narrator MCP server script at {narrator_path}"
-            )
-
-        logger.info("🚀 Starting MCP client...")
-        logger.info(f"📁 Client directory: {client_dir}")
-        logger.info(f"📁 Project root: {project_root}")
-        logger.info(f"📄 Narrator path: {narrator_path}")
-
-        narrator_dir = narrator_path.parent
-
-        if self.use_stdio:
-            # Local stdio mode
-            logger.info("🔌 Using stdio transport (local mode)")
+        # Remote mode: connect to existing MCP endpoint
+        if self.remote_mcp_url:
+            logger.info("🚀 Starting MCP client in REMOTE mode...")
+            logger.info(f"🌐 Remote MCP URL: {self.remote_mcp_url}")
+            # Remote Hugging Face Space uses SSE transport for MCP
             config = {
                 "mcpServers": {
                     "narrator-mcp": {
-                        "command": "uv",
-                        "args": ["run", "python", "server.py"],
-                        "cwd": str(narrator_dir),
-                        "env": {"MCP_TRANSPORT": "stdio"}
+                        "url": self.remote_mcp_url,
+                        "transport": "sse",
                     }
                 }
             }
-            # In stdio mode, no need to start HTTP server, FastMCP client will manage subprocess automatically
         else:
-            # Remote streamable-http mode
-            logger.info("🌐 Using streamable-http transport (remote mode)")
-            # Check if server is already running
-            server_running = await self._check_server_running()
+            # Local mode: ensure narrator server script exists
+            if not narrator_path.exists():
+                raise FileNotFoundError(
+                    f"Could not locate narrator MCP server script at {narrator_path}"
+                )
 
-            if not server_running:
-                logger.info("🔧 MCP server not running, starting it...")
-                await self._start_server(project_root, narrator_path)
-            else:
-                logger.info("✅ MCP server already running")
+            logger.info("🚀 Starting MCP client in LOCAL mode...")
+            logger.info(f"📁 Client directory: {client_dir}")
+            logger.info(f"📁 Project root: {project_root}")
+            logger.info(f"📄 Narrator path: {narrator_path}")
 
-            config = {
-                "mcpServers": {
-                    "narrator-mcp": {
-                        "url": self.server_url,
-                        "transport": "streamable-http"
+            narrator_dir = narrator_path.parent
+
+            if self.use_stdio:
+                # Local stdio mode
+                logger.info("🔌 Using stdio transport (local mode)")
+                config = {
+                    "mcpServers": {
+                        "narrator-mcp": {
+                            "command": "uv",
+                            "args": ["run", "python", "server.py"],
+                            "cwd": str(narrator_dir),
+                            "env": {"MCP_TRANSPORT": "stdio"},
+                        }
                     }
                 }
-            }
+                # In stdio mode, no need to start HTTP server, FastMCP client will manage subprocess automatically
+            else:
+                # Remote streamable-http mode to local HTTP server
+                logger.info("🌐 Using streamable-http transport (local HTTP mode)")
+                # Check if server is already running
+                server_running = await self._check_server_running()
+
+                if not server_running:
+                    logger.info("🔧 MCP server not running, starting it...")
+                    await self._start_server(project_root, narrator_path)
+                else:
+                    logger.info("✅ MCP server already running")
+
+                config = {
+                    "mcpServers": {
+                        "narrator-mcp": {
+                            "url": self.server_url,
+                            "transport": "streamable-http",
+                        }
+                    }
+                }
 
         logger.info("🤝 Connecting to MCP server...")
         self.client = Client(config)
         await self.client.__aenter__()
         logger.info("✅ MCP client connected")
+
+        # Initialize tool name mappings based on available tools
+        await self._init_tool_names()
 
         # Configure server via tool call
         await self._send_config()
@@ -252,6 +291,74 @@ class MCPBridge:
         logger.info("🔊 Audio player started")
 
         return self
+
+    async def _init_tool_names(self):
+        """Build mapping from logical tool names to actual MCP tool names.
+
+        This allows the bridge to work with both local tools (e.g. \"narrate_text\")
+        and remotely-prefixed tools (e.g. \"vibe_narrator_narrate_text\").
+
+        Expected logical tool names:
+        - configure
+        - narrate_text
+        - list_characters
+        - get_config_status
+        """
+        if not self.client:
+            logger.warning("⚠️ MCP client not initialized, cannot load tool names")
+            return
+
+        try:
+            tools = await self.client.list_tools()
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to list MCP tools, using logical names: {e}")
+            # Fall back to logical names
+            self.tool_names = {
+                "configure": "configure",
+                "narrate_text": "narrate_text",
+                "list_characters": "list_characters",
+                "get_config_status": "get_config_status",
+            }
+            return
+
+        # Extract tool names from FastMCP client's response
+        names: list[str] = []
+        if isinstance(tools, dict):
+            names = list(tools.keys())
+        else:
+            for t in tools:
+                if hasattr(t, "name"):
+                    names.append(t.name)  # type: ignore[attr-defined]
+                else:
+                    names.append(str(t))
+
+        def resolve(logical: str) -> str:
+            # Exact match first
+            if logical in names:
+                return logical
+            # Then suffix match, e.g. *_narrate_text
+            suffix = f"_{logical}"
+            for n in names:
+                if n.endswith(suffix):
+                    return n
+            # Fallback to logical name
+            logger.warning(
+                f"⚠️ Could not resolve tool name for '{logical}', "
+                f"falling back to logical name"
+            )
+            return logical
+
+        self.tool_names = {
+            "configure": resolve("configure"),
+            "narrate_text": resolve("narrate_text"),
+            "list_characters": resolve("list_characters"),
+            "get_config_status": resolve("get_config_status"),
+        }
+
+        logger.info(
+            "🧰 Resolved MCP tool names: "
+            + ", ".join(f"{k} -> {v}" for k, v in self.tool_names.items())
+        )
 
     async def _check_server_running(self) -> bool:
         """Check if MCP server is running by attempting HTTP connection."""
@@ -406,7 +513,9 @@ class MCPBridge:
         )
 
         logger.info(f"🔑 Configuring server ({config_info})...")
-        result = await self.client.call_tool("configure", config_args)
+        tool_name = self.tool_names.get("configure", "configure")
+        logger.info(f"🛠 Using configure tool: {tool_name}")
+        result = await self.client.call_tool(tool_name, config_args)
         # FastMCP returns CallToolResult object with data attribute
         if hasattr(result, 'data'):
             logger.info(f"✅ Configuration: {result.data}")
@@ -425,24 +534,82 @@ class MCPBridge:
         logger.info(f"📤 Sending narration request #{self.narrations_sent}:\n{text}")
 
         try:
-            # Call narrate_text tool (aligned with remote MCP naming)
-            result = await self.client.call_tool("narrate_text", {"prompt": text})
+            # Call narrate_text tool (resolved based on available tools)
+            tool_name = self.tool_names.get("narrate_text", "narrate_text")
+            logger.info(f"🎤 Using narrate_text tool: {tool_name}")
+            try:
+                result = await self.client.call_tool(tool_name, {"prompt": text})
+            except ToolError as e:
+                # Log detailed error information
+                error_detail = str(e)
+                logger.error(f"❌ MCP tool error: {error_detail}")
+                # Try to get more details from the exception
+                if hasattr(e, 'message'):
+                    logger.error(f"   Error message: {e.message}")
+                if hasattr(e, 'code'):
+                    logger.error(f"   Error code: {e.code}")
+                raise
 
-            # FastMCP returns CallToolResult object with data attribute
-            if hasattr(result, 'data'):
-                # Use data attribute which contains the string result
-                result_str = result.data
-            elif isinstance(result, str):
-                result_str = result
-            else:
-                # Fallback: try to get from content
-                if hasattr(result, 'content') and result.content:
-                    result_str = result.content[0].text if hasattr(result.content[0], 'text') else str(result.content[0])
+            # Normalize result into a Python dict with text/audio/format fields.
+            response_data: dict[str, Any]
+
+            # FastMCP: CallToolResult with .data attribute
+            if hasattr(result, "data") and getattr(result, "data") is not None:
+                data = getattr(result, "data")
+                if isinstance(data, dict):
+                    response_data = data
+                elif isinstance(data, str):
+                    if not data.strip():
+                        logger.warning("⚠️ narrate_text returned empty string data")
+                        response_data = {}
+                    else:
+                        response_data = json.loads(data)
                 else:
-                    result_str = str(result)
+                    logger.warning(f"⚠️ Unexpected result.data type: {type(data)}")
+                    response_data = {}
+            # Plain dict
+            elif isinstance(result, dict):
+                response_data = result
+            # Plain string
+            elif isinstance(result, str):
+                if not result.strip():
+                    logger.warning("⚠️ narrate_text returned empty string result")
+                    response_data = {}
+                else:
+                    response_data = json.loads(result)
+            else:
+                # Fallback: try to get from content (SSE-style responses)
+                if hasattr(result, "content") and getattr(result, "content"):
+                    content = getattr(result, "content")
+                    first = content[0]
+                    if hasattr(first, "text"):
+                        text_val = first.text  # type: ignore[attr-defined]
+                    else:
+                        text_val = str(first)
+                    if text_val and isinstance(text_val, str):
+                        try:
+                            response_data = json.loads(text_val)
+                        except Exception:
+                            logger.warning(
+                                f"⚠️ Failed to parse content text as JSON, using empty response. "
+                                f"text={text_val!r}"
+                            )
+                            response_data = {}
+                    else:
+                        response_data = {}
+                else:
+                    logger.warning(
+                        f"⚠️ Unexpected narrate_text result type: {type(result)}, "
+                        f"value={result!r}"
+                    )
+                    response_data = {}
 
-            # Parse JSON result
-            response_data = json.loads(result_str)
+            # Check for error in response
+            if "error" in response_data:
+                error_msg = response_data.get("error", "Unknown error")
+                logger.error(f"❌ Narration error: {error_msg}")
+                self.narrations_completed += 1
+                return
 
             generated_text = response_data.get("text", "")
             audio_base64 = response_data.get("audio", "")
