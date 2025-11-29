@@ -28,6 +28,9 @@ from narrator_mcp.chunker import Chunker
 from narrator_mcp.tts import detect_tts_provider
 from narrator_mcp.llm import CHAT_MODE_SYSTEM_PROMPT, get_character_modified_system_prompt
 
+# Simple, neutral system prompt for chatbox (no character styling)
+CHATBOX_SYSTEM_PROMPT = """You are a helpful AI assistant. Keep your responses brief and concise - aim for 1-3 sentences maximum. Be direct and to the point."""
+
 # Get API keys from environment (provider-specific)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_TTS_VOICE = os.getenv("OPENAI_TTS_VOICE", "nova")  # Default to "nova"
@@ -821,21 +824,10 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             # Convert history format for LLM (expects old format)
                             old_format_history = _convert_history_to_old_format(history)
 
-                            # Get character object
-                            if character in CHARACTER_CHOICES:
-                                character_id = CHARACTER_CHOICES[character]
-                            else:
-                                character_id = character
-
-                            char_obj = get_character(character_id)
-
                             # Build messages from history
+                            # Use simple, neutral prompt for chatbox (no character styling)
                             messages = []
-                            system_prompt = get_character_modified_system_prompt(
-                                base_system_prompt=CHAT_MODE_SYSTEM_PROMPT,
-                                character=char_obj,
-                            )
-                            messages.append({"role": "system", "content": system_prompt})
+                            messages.append({"role": "system", "content": CHATBOX_SYSTEM_PROMPT})
 
                             # Add history
                             for pair in old_format_history:
