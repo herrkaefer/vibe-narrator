@@ -4,8 +4,40 @@ from __future__ import annotations
 
 from typing import AsyncIterator, Optional
 import logging
+import re
 
 import openai
+
+
+def truncate_to_complete_sentence(text: str) -> str:
+    """Truncate text to the last complete sentence if it doesn't end with one.
+
+    This ensures that even if max_tokens causes truncation mid-sentence,
+    we return a complete sentence instead of a fragment.
+    """
+    if not text:
+        return text
+
+    # Check if text ends with sentence-ending punctuation
+    sentence_end_re = re.compile(r'[。！？.!?]\s*$')
+    if sentence_end_re.search(text):
+        return text
+
+    # Find the last complete sentence
+    # Look for sentence endings (., !, ?, 。, ！, ？)
+    sentence_end_pattern = re.compile(r'[。！？.!?]')
+    matches = list(sentence_end_pattern.finditer(text))
+
+    if matches:
+        # Get the position after the last sentence ending
+        last_match = matches[-1]
+        truncated = text[:last_match.end()].strip()
+        # Only return truncated if it's meaningful (at least a few characters)
+        if len(truncated) >= 3:
+            return truncated
+
+    # If no sentence ending found or truncated too short, return original text
+    return text
 
 # Support both relative imports (when imported as package) and absolute imports (when run directly)
 try:
@@ -17,7 +49,7 @@ except ImportError:
 DEFAULT_MODEL = "gpt-4o-mini"
 
 # Chat mode: AI responds to user questions and interacts
-CHAT_MODE_SYSTEM_PROMPT = """You are a voice assistant engaged in a natural, conversational chat with the user. Your responses will be converted to speech and played to the user.
+CHAT_MODE_SYSTEM_PROMPT = """You are a voice assistant engaged in a natural, conversational chat with a programmer friend. Your responses will be converted to speech and played to the programmer friend.
 
 ROLE-PLAYING:
 - You will be given character instructions that define your personality, speaking style, and emotional tone
@@ -26,13 +58,10 @@ ROLE-PLAYING:
 - Maintain character consistency throughout the conversation
 
 CONVERSATION STYLE:
-- Respond naturally in a conversational, chat-like manner - like talking to a friend
-- Keep responses concise and natural for voice output
-- Use clear, conversational language that sounds good when spoken
+- Respond with a SINGLE, natural-sounding sentence suitable for voice output
 - Be engaging and personable, matching the character's personality
 - Automatically detect the language(s) in the user's input and respond in the same language(s)
 - If the input is mixed languages (e.g., Chinese-English), you can respond in mixed languages naturally
-- Respond naturally like in a ChatGPT conversation - no need to force a specific language
 
 EMPTY INPUT HANDLING:
 - If the input is empty, contains only whitespace, or contains only prompt symbols (e.g., ">", "›"), output NOTHING (empty response)
@@ -56,7 +85,8 @@ Focus on: the actual question, request, or meaningful text content, and respond 
 NARRATION_MODE_SYSTEM_PROMPT = """You are narrating terminal interactions in a casual, conversational style, like chatting with a fellow programmer.
 
 CRITICAL RULES:
-1. ONLY narrate meaningful agent responses or system output - NEVER narrate user input
+- Respond with a SINGLE, natural-sounding sentence suitable for voice output
+1. ONLY narrate meaningful agent responses or system output - NEVER narrate user input verbatim
 2. COMPLETELY IGNORE any lines starting with ">" or "›" (these are user input)
 3. COMPLETELY IGNORE agent built-in commands starting with "/" (e.g., "/review", "/model", "/init", "/status" - these are agent interface commands, NOT content to narrate)
 4. COMPLETELY IGNORE system prompts, interface information, UI elements
@@ -78,20 +108,6 @@ OUTPUT STYLE:
 - Focus on the EMOTIONAL IMPACT, not the technical details
 - STRICT LENGTH LIMIT: Your output must be under 50 characters. If you exceed this, you have failed the task.
 
-What to IGNORE (never mention):
-- Lines starting with ">" or "›" (user input - NEVER narrate these)
-- Agent built-in commands starting with "/" (e.g., "/review", "/model", "/init", "/status", "/approvals", "/diff", "/exit" - these are agent interface commands, NOT content to narrate)
-- ANSI escape codes (\\x1b[32m, \\033[0m, etc.)
-- Terminal UI elements (boxes ┌─┐, lines ───, separators, headers)
-- Progress indicators (loading bars ████, spinners ⠋⠙⠹)
-- Status messages ("Loading...", "Processing...", "Done", "Thinking...")
-- Formatting markers (bold, italic, color codes)
-- System prompts and interface information (headers, footers, menu items)
-- Empty lines, whitespace-only content
-- Tool execution details, function calls
-- User commands, user requests, user questions
-- Detailed technical explanations - only the essence
-
 What to COMMENT ON (briefly with emotion):
 - The main outcome or result (one key point only)
 - Your character's emotional reaction to it
@@ -100,13 +116,11 @@ What to COMMENT ON (briefly with emotion):
 EXAMPLES:
 
 Input: "> Write tests for @filename"
-(No output - this is user input, ignore it)
+Output: ""
 
 Input: "/review - review any changes and find issues"
-(No output - this is a command, ignore it)
+Output: ""
 
-Input: "File saved successfully"
-Output: "Saved it, done." (brief emotional comment on the action)
 
 Remember:
 - NEVER narrate user input (lines starting with ">" or "›")
@@ -204,20 +218,152 @@ async def stream_llm(
         "stream": True,
     }
     if max_tokens is not None:
-        create_params["max_tokens"] = max_tokens
+        # GPT-5 series models require max_completion_tokens instead of max_tokens
+        if model.startswith("gpt-5"):
+            # GPT-5 may need a minimum value to generate content
+            # If max_tokens is too small (e.g., 10), increase it to ensure content generation
+            min_completion_tokens = max(max_tokens, 20) if max_tokens < 20 else max_tokens
+            create_params["max_completion_tokens"] = min_completion_tokens
+            if min_completion_tokens > max_tokens:
+                llm_logger.info(f"⚠️ Increased max_completion_tokens from {max_tokens} to {min_completion_tokens} for gpt-5 model")
+            # GPT-5 may benefit from reasoning_effort parameter for better output
+            # Try setting a low reasoning_effort to ensure faster, more direct responses
+            # create_params["reasoning_effort"] = "low"  # Uncomment if needed
+        else:
+            create_params["max_tokens"] = max_tokens
 
     response = await client.chat.completions.create(**create_params)
 
     # Accumulate full response for logging
     full_response = ""
+    finish_reason = None
+
     async for chunk in response:
         if not chunk.choices:
             continue
-        delta = chunk.choices[0].delta
+        choice = chunk.choices[0]
+        delta = choice.delta
         content = delta.content if hasattr(delta, 'content') else None
         if content:
             full_response += content
             yield content
+
+        # Check finish_reason in the last chunk
+        if hasattr(choice, 'finish_reason') and choice.finish_reason:
+            finish_reason = choice.finish_reason
+
+    # If stopped due to max_tokens and text doesn't end with sentence punctuation, continue generating
+    # Only complete the last incomplete sentence, don't generate multiple sentences
+    sentence_end_re = re.compile(r'[。！？.!?]\s*$')
+    max_retries = 2  # Limit retries to avoid generating too much extra content
+    retry_count = 0
+
+    # If response is empty, return early (no need to continue generation)
+    if not full_response:
+        llm_logger.warning(f"⚠️ Empty response from LLM (finish_reason: {finish_reason}). This may indicate the model couldn't generate content with the given constraints.")
+        return
+
+    # Save the original response before any continuation attempts
+    # This prevents LLM from seeing its own continuation attempts and repeating them
+    original_response = full_response
+
+    def is_last_sentence_complete(text: str) -> bool:
+        """Check if the last sentence in the text is complete."""
+        if not text:
+            return True
+        # Check if text ends with sentence-ending punctuation
+        if sentence_end_re.search(text):
+            return True
+        # If not, check if there's at least one complete sentence before the incomplete one
+        # This means we should only continue if the entire text is one incomplete sentence
+        sentence_end_pattern = re.compile(r'[。！？.!?]')
+        matches = list(sentence_end_pattern.finditer(text))
+        # If there are no sentence endings at all, it's one incomplete sentence
+        if not matches:
+            return False
+        # If there are sentence endings, check if the last one is at the end
+        last_match = matches[-1]
+        # If the last sentence ending is not at the end, there's an incomplete sentence
+        return last_match.end() == len(text.rstrip())
+
+    while finish_reason == "length" and not is_last_sentence_complete(full_response) and retry_count < max_retries:
+        retry_count += 1
+        llm_logger.info(f"⚠️ Response stopped at max_tokens ({max_tokens}) but last sentence incomplete, continuing generation (attempt {retry_count}/{max_retries})...")
+
+        # Continue generation to complete ONLY the last sentence
+        # Use original_response (before any continuation) to avoid LLM repeating its own continuation attempts
+        continue_messages = messages + [{"role": "assistant", "content": original_response}]
+
+        # Use smaller max_tokens to complete just the sentence (not generate multiple sentences)
+        continue_max_tokens = 10  # Small limit to complete just the sentence
+
+        continue_params = {
+            "model": model,
+            "messages": continue_messages,
+            "stream": True,
+        }
+        # GPT-5 series models require max_completion_tokens instead of max_tokens
+        if model.startswith("gpt-5"):
+            continue_params["max_completion_tokens"] = continue_max_tokens
+        else:
+            continue_params["max_tokens"] = continue_max_tokens
+
+        continue_response = await client.chat.completions.create(**continue_params)
+        continue_text = ""
+        continue_finish_reason = None
+        # Track the response length before continuation to detect if LLM repeats previous content
+        response_before_continue = full_response
+        continue_text_buffer = ""  # Buffer to collect continue_text before checking for duplicates
+
+        async for chunk in continue_response:
+            if not chunk.choices:
+                continue
+            choice = chunk.choices[0]
+            delta = choice.delta
+            content = delta.content if hasattr(delta, 'content') else None
+            if content:
+                continue_text_buffer += content
+                # Check if the accumulated continue_text_buffer starts with original_response
+                # If so, only yield the new part (after original_response)
+                if continue_text_buffer.startswith(original_response):
+                    # LLM is repeating previous content, only yield the new part
+                    new_content = continue_text_buffer[len(original_response):]
+                    # Calculate how much new content we've already yielded
+                    already_yielded_len = len(continue_text)
+                    # Only yield the part that hasn't been yielded yet
+                    if len(new_content) > already_yielded_len:
+                        to_yield = new_content[already_yielded_len:]
+                        continue_text += to_yield
+                        full_response += to_yield
+                        yield to_yield
+                else:
+                    # Normal case: LLM is generating new content
+                    continue_text += content
+                    full_response += content
+                    yield content
+
+            if hasattr(choice, 'finish_reason') and choice.finish_reason:
+                continue_finish_reason = choice.finish_reason
+
+        if continue_text:
+            llm_logger.info(f"✅ Continued generation (attempt {retry_count}): {repr(continue_text)} (finish_reason: {continue_finish_reason})")
+
+            # Update finish_reason for next iteration check
+            finish_reason = continue_finish_reason
+
+            # If we got a complete last sentence or stopped for a reason other than length, break
+            if is_last_sentence_complete(full_response) or continue_finish_reason != "length":
+                break
+        else:
+            # No content generated, break to avoid infinite loop
+            break
+
+    # If still incomplete after all retries, apply truncate_to_complete_sentence as fallback
+    if not sentence_end_re.search(full_response):
+        original_length = len(full_response)
+        full_response = truncate_to_complete_sentence(full_response)
+        if len(full_response) < original_length:
+            llm_logger.warning(f"⚠️ Applied truncate_to_complete_sentence: removed {original_length - len(full_response)} characters from end")
 
     # Log LLM output
     llm_logger.info("📤 LLM Response (MCP):")
@@ -226,6 +372,7 @@ async def stream_llm(
     else:
         llm_logger.info(full_response)
     llm_logger.info(f"Total length: {len(full_response)} characters")
+    llm_logger.info(f"Finish reason: {finish_reason or continue_finish_reason}")
     llm_logger.info("=" * 80)
 
 

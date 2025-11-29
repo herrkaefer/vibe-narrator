@@ -808,6 +808,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                         llm_api_key = OPENAI_API_KEY
                         if not llm_api_key:
                             error_msg = "❌ Error: OPENAI_API_KEY not configured. Please set it in environment variables."
+                            # Use dict format for Gradio Chatbot
                             new_history = _convert_history_to_dict_format(history)
                             new_history.append({"role": "user", "content": message})
                             new_history.append({"role": "assistant", "content": error_msg})
@@ -815,6 +816,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             return
 
                         # Immediately add user message to history and yield
+                        # Use dict format for Gradio Chatbot
                         new_history = _convert_history_to_dict_format(history)
                         new_history.append({"role": "user", "content": message})
                         new_history.append({"role": "assistant", "content": ""})  # Empty assistant message for streaming
@@ -867,12 +869,14 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                                 if content:
                                     ai_response += content
                                     # Update history with streaming response
+                                    # Use dict format for Gradio Chatbot
                                     streaming_history = _convert_history_to_dict_format(history)
                                     streaming_history.append({"role": "user", "content": message})
                                     streaming_history.append({"role": "assistant", "content": ai_response})
                                     yield streaming_history, "", None, ""
 
                             if not ai_response:
+                                # Use dict format for Gradio Chatbot
                                 final_history = _convert_history_to_dict_format(history)
                                 final_history.append({"role": "user", "content": message})
                                 final_history.append({"role": "assistant", "content": ""})
@@ -911,28 +915,34 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             # In chat mode, generate_narration will re-process the text with character styling for audio
                             styled_text, audio_bytes = await generate_narration(ctx, ai_response)
 
-                            # Combine original response and styled text for display
-                            # Original response on top, styled text below with different styling
-                            if styled_text and styled_text.strip() and styled_text != ai_response:
-                                # Only show styled text if it's different from original
-                                # Use HTML format for better styling control in Gradio Chatbot
-                                # Escape HTML special characters in styled_text
-                                import html
-                                escaped_styled = html.escape(styled_text)
-                                combined_content = f"""{ai_response}
-
----
-
-<div style="margin-top: 12px; padding: 10px 12px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-left: 4px solid #6c757d; border-radius: 4px; font-style: italic; color: #495057; font-size: 0.92em; line-height: 1.5;">
-<strong style="color: #495057;">🎭 Character Style:</strong><br>
-<span style="color: #6c757d;">{escaped_styled}</span>
-</div>"""
-                            else:
-                                combined_content = ai_response
-
                             # History already contains the final response from streaming, update with combined content
+                            # Use dict format for Gradio Chatbot
                             final_history = _convert_history_to_dict_format(history)
                             final_history.append({"role": "user", "content": message})
+
+                            # Create content with two separate visual boxes: AI response and MCP styled text
+                            if styled_text and styled_text.strip() and styled_text != ai_response:
+                                # Escape HTML special characters in styled_text, but preserve line breaks
+                                import html
+                                escaped_styled = html.escape(styled_text).replace('\n', '<br>')
+
+                                # Create two separate visual boxes in HTML
+                                # First box: AI original response
+                                # Second box: MCP styled text
+                                combined_content = f"""<div style="margin-bottom: 16px;">
+<div style="padding: 12px 16px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px;">
+{html.escape(ai_response).replace(chr(10), '<br>')}
+</div>
+<div style="padding: 12px 16px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-left: 4px solid #6c757d; border-radius: 6px; font-style: italic; color: #495057; font-size: 0.95em; line-height: 1.6;">
+<strong style="color: #495057; display: block; margin-bottom: 8px;">🎭</strong>
+<span style="color: #6c757d; display: block;">{escaped_styled}</span>
+</div>
+</div>"""
+                            else:
+                                # Only AI response, no styled text
+                                import html
+                                combined_content = html.escape(ai_response).replace(chr(10), '<br>')
+
                             final_history.append({"role": "assistant", "content": combined_content})
 
                             # Save audio to temporary file for playback
@@ -1054,6 +1064,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
                             error_msg = f"❌ Error: {str(e)}"
                             error_trace = traceback.format_exc()
                             logger.error(f"Chat function error: {error_msg}\n{error_trace}")
+                            # Use dict format for Gradio Chatbot
                             error_history = _convert_history_to_dict_format(history)
                             error_history.append({"role": "user", "content": message})
                             error_history.append({"role": "assistant", "content": error_msg})

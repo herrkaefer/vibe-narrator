@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -71,7 +72,13 @@ if is_stdio_mode:
 
 narrate_logger = logging.getLogger("narrate")
 narrate_logger.setLevel(logging.INFO)
-narrate_logger.addHandler(file_handler)
+# Don't add file_handler to narrate_logger - it's already on root logger
+# Logs from narrate_logger will propagate to root logger and be handled by root's file_handler
+# This prevents duplicate log entries
+
+# Max tokens configuration for LLM generation
+MAX_TOKENS_NARRATION = 30  # Narration mode: very brief output (max 50 chars)
+MAX_TOKENS_CHAT = 20      # Chat mode: single sentence response
 
 
 @dataclass
@@ -249,6 +256,37 @@ async def get_config_status() -> str:
     return json.dumps(status)
 
 
+def truncate_to_complete_sentence(text: str) -> str:
+    """Truncate text to the last complete sentence if it doesn't end with one.
+
+    This ensures that even if max_tokens causes truncation mid-sentence,
+    we return a complete sentence instead of a fragment.
+    """
+    if not text:
+        return text
+
+    # Check if text ends with sentence-ending punctuation
+    sentence_end_re = re.compile(r'[。！？.!?]\s*$')
+    if sentence_end_re.search(text):
+        return text
+
+    # Find the last complete sentence
+    # Look for sentence endings (., !, ?, 。, ！, ？)
+    sentence_end_pattern = re.compile(r'[。！？.!?]')
+    matches = list(sentence_end_pattern.finditer(text))
+
+    if matches:
+        # Get the position after the last sentence ending
+        last_match = matches[-1]
+        truncated = text[:last_match.end()].strip()
+        # Only return truncated if it's meaningful (at least a few characters)
+        if len(truncated) >= 3:
+            return truncated
+
+    # If no sentence ending found or truncated too short, return original text
+    return text
+
+
 def _is_valid_output(text: str) -> bool:
     """Check if text is a valid, non-empty output worth narrating.
 
@@ -256,6 +294,7 @@ def _is_valid_output(text: str) -> bool:
     - Empty strings or whitespace-only
     - Patterns like 'Output: ""', 'Output: \'\'', etc. (LLM sometimes outputs example format)
     - Strings that are just quotes or whitespace after stripping
+    - Example text patterns from system prompt (e.g., "(empty response)", "(No output -")
     """
     if not text:
         return False
@@ -264,12 +303,35 @@ def _is_valid_output(text: str) -> bool:
     if not stripped:
         return False
 
-    # Filter out patterns like "Output: """, "Output: ''", "Output:", etc.
     stripped_lower = stripped.lower()
+
+    # Filter out patterns like "Output: """, "Output: ''", "Output:", etc.
     if stripped_lower.startswith("output:"):
         # Check if after "output:" it's just quotes/whitespace
         after_output = stripped_lower[7:].strip().strip('"').strip("'").strip()
         if not after_output:
+            return False
+
+    # Filter out example text patterns from system prompt
+    # These are meta-comments that LLM sometimes outputs instead of actual empty response
+    invalid_patterns = [
+        "(empty response)",
+        "(no output",
+        "(no output -",
+        "(no output - this is",
+        "(no meaningful output",
+        "(empty - this is user input",
+        "empty response",
+        "no output",
+        "no meaningful output",
+        "empty - this is user input",
+        "empty - this is",
+    ]
+
+    # Remove parentheses for pattern matching
+    stripped_no_parens = stripped_lower.strip('()').strip()
+    for pattern in invalid_patterns:
+        if stripped_no_parens.startswith(pattern) or pattern in stripped_no_parens:
             return False
 
     return True
@@ -307,12 +369,17 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
             # Select system prompt and max tokens based on mode
             if ctx.session.mode == "narration":
                 stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
-                stream_params["max_tokens"] = 25
+                # Temporarily disabled max_tokens for testing
+                # stream_params["max_tokens"] = MAX_TOKENS_NARRATION
             else:  # chat mode
                 stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
-                stream_params["max_tokens"] = 20
+                # Temporarily disabled max_tokens for testing
+                # stream_params["max_tokens"] = MAX_TOKENS_CHAT
 
             # Stream LLM tokens
+            # Cache the last block to ensure it's complete before sending to TTS
+            last_block: str | None = None
+
             async for token in stream_llm(**stream_params):
                 token_count += 1
                 narrate_logger.debug(f"📝 LLM token #{token_count}: {repr(token)}")
@@ -322,8 +389,12 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
                 block = ctx.chunker.add_token(token)
                 if block:
                     if _is_valid_output(block):
-                        narrate_logger.info(f"📦 Chunk ready for TTS ({len(block)} chars): {repr(block)}")
-                        await tts_queue.put(block)
+                        # If we have a cached last block, send it now (it's complete)
+                        if last_block:
+                            narrate_logger.info(f"📦 Chunk ready for TTS ({len(last_block)} chars): {repr(last_block)}")
+                            await tts_queue.put(last_block)
+                        # Cache the current block (might be the last one)
+                        last_block = block
                     else:
                         narrate_logger.info(f"⏭️ Skipping invalid/empty chunk: {repr(block)}")
 
@@ -331,12 +402,28 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
 
             # Flush remaining tokens
             leftover = ctx.chunker.flush()
+
+            # Combine last_block and leftover, then ensure it's a complete sentence
+            final_block = ""
+            if last_block:
+                final_block = last_block
             if leftover:
-                if _is_valid_output(leftover):
-                    narrate_logger.info(f"📦 Final chunk for TTS ({len(leftover)} chars): {repr(leftover)}")
-                    await tts_queue.put(leftover)
+                final_block += leftover
+
+            if final_block:
+                # Apply truncate_to_complete_sentence to ensure completeness
+                final_block = truncate_to_complete_sentence(final_block)
+                if final_block and _is_valid_output(final_block):
+                    narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
+                    await tts_queue.put(final_block)
                 else:
-                    narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk: {repr(leftover)}")
+                    narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk after truncation: {repr(final_block)}")
+            elif last_block:
+                # If we only had last_block (no leftover), still apply truncate
+                final_block = truncate_to_complete_sentence(last_block)
+                if final_block and _is_valid_output(final_block):
+                    narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
+                    await tts_queue.put(final_block)
 
             await tts_queue.put(None)  # Signal completion
 
@@ -476,6 +563,11 @@ async def generate_narration(ctx: AppContext, prompt: str) -> tuple[str, bytes]:
 
     # Combine results
     full_text = ''.join(generated_text_tokens)
+
+    # Truncate to complete sentence if text doesn't end with sentence punctuation
+    # This ensures we don't return incomplete sentences when max_tokens is reached
+    full_text = truncate_to_complete_sentence(full_text)
+
     full_audio = b''.join(audio_chunks)
 
     return full_text, full_audio
@@ -517,12 +609,17 @@ async def generate_narration_stream(
             # Select system prompt and max tokens based on mode
             if ctx.session.mode == "narration":
                 stream_params["system_prompt"] = NARRATION_MODE_SYSTEM_PROMPT
-                stream_params["max_tokens"] = 25
+                # Temporarily disabled max_tokens for testing
+                # stream_params["max_tokens"] = MAX_TOKENS_NARRATION
             else:  # chat mode
                 stream_params["system_prompt"] = CHAT_MODE_SYSTEM_PROMPT
-                stream_params["max_tokens"] = 20
+                # Temporarily disabled max_tokens for testing
+                # stream_params["max_tokens"] = MAX_TOKENS_CHAT
 
             # Stream LLM tokens
+            # Cache the last block to ensure it's complete before sending to TTS
+            last_block: str | None = None
+
             async for token in stream_llm(**stream_params):
                 token_count += 1
                 narrate_logger.debug(f"📝 LLM token #{token_count}: {repr(token)}")
@@ -532,8 +629,12 @@ async def generate_narration_stream(
                 block = ctx.chunker.add_token(token)
                 if block:
                     if _is_valid_output(block):
-                        narrate_logger.info(f"📦 Chunk ready for TTS ({len(block)} chars): {repr(block)}")
-                        await tts_queue.put(block)
+                        # If we have a cached last block, send it now (it's complete)
+                        if last_block:
+                            narrate_logger.info(f"📦 Chunk ready for TTS ({len(last_block)} chars): {repr(last_block)}")
+                            await tts_queue.put(last_block)
+                        # Cache the current block (might be the last one)
+                        last_block = block
                     else:
                         narrate_logger.info(f"⏭️ Skipping invalid/empty chunk: {repr(block)}")
 
@@ -541,12 +642,28 @@ async def generate_narration_stream(
 
             # Flush remaining tokens
             leftover = ctx.chunker.flush()
+
+            # Combine last_block and leftover, then ensure it's a complete sentence
+            final_block = ""
+            if last_block:
+                final_block = last_block
             if leftover:
-                if _is_valid_output(leftover):
-                    narrate_logger.info(f"📦 Final chunk for TTS ({len(leftover)} chars): {repr(leftover)}")
-                    await tts_queue.put(leftover)
+                final_block += leftover
+
+            if final_block:
+                # Apply truncate_to_complete_sentence to ensure completeness
+                final_block = truncate_to_complete_sentence(final_block)
+                if final_block and _is_valid_output(final_block):
+                    narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
+                    await tts_queue.put(final_block)
                 else:
-                    narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk: {repr(leftover)}")
+                    narrate_logger.info(f"⏭️ Skipping invalid/empty final chunk after truncation: {repr(final_block)}")
+            elif last_block:
+                # If we only had last_block (no leftover), still apply truncate
+                final_block = truncate_to_complete_sentence(last_block)
+                if final_block and _is_valid_output(final_block):
+                    narrate_logger.info(f"📦 Final chunk for TTS ({len(final_block)} chars): {repr(final_block)}")
+                    await tts_queue.put(final_block)
 
             await tts_queue.put(None)  # Signal completion
 
