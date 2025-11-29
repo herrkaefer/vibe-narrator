@@ -173,7 +173,7 @@ async def configure(
 
 
 @mcp.tool()
-async def narrate(prompt: str) -> str:
+async def narrate_text(prompt: str) -> str:
     """Convert text to narrated speech using LLM and TTS."""
     ctx = get_context()
 

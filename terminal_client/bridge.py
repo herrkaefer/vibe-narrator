@@ -425,8 +425,8 @@ class MCPBridge:
         logger.info(f"📤 Sending narration request #{self.narrations_sent}:\n{text}")
 
         try:
-            # Call narrate tool
-            result = await self.client.call_tool("narrate", {"prompt": text})
+            # Call narrate_text tool (aligned with remote MCP naming)
+            result = await self.client.call_tool("narrate_text", {"prompt": text})
 
             # FastMCP returns CallToolResult object with data attribute
             if hasattr(result, 'data'):

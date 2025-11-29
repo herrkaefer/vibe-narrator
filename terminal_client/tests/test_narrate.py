@@ -97,7 +97,7 @@ try:
     send_msg({
         "jsonrpc": "2.0",
         "id": 2,
-        "method": "narrate",
+        "method": "narrate_text",
         "params": {
             "prompt": "Hello, this is a simple test message."
         }
