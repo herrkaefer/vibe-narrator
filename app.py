@@ -96,6 +96,26 @@ _global_chunker = Chunker(max_tokens=12, sentence_boundary=True)
 _global_context = AppContext(session=_global_session, chunker=_global_chunker)
 
 
+def _load_readme() -> str:
+    """Load README.md content, stripping YAML front matter."""
+    readme_path = Path(__file__).parent / "README.md"
+    if not readme_path.exists():
+        return "README.md not found."
+
+    content = readme_path.read_text(encoding="utf-8")
+
+    # Strip YAML front matter (between --- markers)
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            content = parts[2].strip()
+
+    return content
+
+
+README_CONTENT = _load_readme()
+
+
 def configure(
     llm_api_key: str,
     llm_model: str | None = None,
@@ -1305,6 +1325,10 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
 
             MIT License
             """)
+
+        # README Tab
+        with gr.Tab("README"):
+            gr.Markdown(README_CONTENT)
 
     # Wrapper function for UI that only uses UI inputs
     async def narrate_text_ui(
