@@ -1234,24 +1234,32 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
         # About Tab
         with gr.Tab("About"):
             gr.Markdown("""
-            ## About Vibe Narrator
+            ### Vibe Narrator MCP Server
 
-            Vibe Narrator is a tool that gives your terminal agents personality through stylized voice narration.
+            Vibe Narrator is an MCP server that accepts text input and performs stylized narration.
 
-            ### Features
+            ### Bridge Tool
 
-            - Multiple character personalities with distinct voices
-            - Two modes: Narration (retelling) and Chat (conversation)
-            - Support for OpenAI and ElevenLabs TTS
-            - MCP server integration for external clients
-            - Free deployment on Hugging Face Spaces
+            The bridge script helps connect terminal-running agents to the MCP server and plays audio.
 
-            ### How It Works
+            ### Supported LLM Models
 
-            1. Enter text to narrate
-            2. Select a character personality
-            3. Choose narration or chat mode
-            4. Generate - LLM interprets the text in character, TTS creates audio
+            - OpenAI
+            - OpenRouter
+
+            ### Supported TTS Providers
+
+            - OpenAI TTS
+            - ElevenLabs TTS
+
+            ### Predefined Characters
+
+            - The Burned-Out Developer
+            - The Overconfident Senior Developer
+            - The Reluctant Developer
+            - The Enlightened Zen Developer
+            - The Adoring Fanboy
+            - The Whispering ASMR Developer
 
             ### GitHub
 
