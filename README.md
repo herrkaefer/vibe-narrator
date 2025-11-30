@@ -16,6 +16,8 @@ tags:
   - voice-ai
 ---
 
+<img src="assets/logo.png" alt="logo" height="128"/>
+
 # 🎭 Vibe Narrator
 
 **Stylized voice embodiment for terminal agents. Give your code a voice with personality!**
@@ -24,7 +26,7 @@ Vibe Narrator transforms text into narrated speech with distinct character perso
 
 ## Features
 
-- **6 Unique Character Personalities** - From burned-out developers to zen masters
+- **Unique Character Personalities** - From burned-out developers to zen masters
 - **Dual Modes** - Narration (retelling) or Chat (conversation)
 - **MCP Server Integration** - Use as a standalone service or integrate with Claude Desktop
 - **Gradio Web UI** - Easy-to-use interface for quick narration
@@ -32,15 +34,51 @@ Vibe Narrator transforms text into narrated speech with distinct character perso
 
 ## Quick Start
 
-### Using the Web Interface
+### Local Installation & Setup
 
-1. Type or paste text to narrate
-2. Select a character personality (Style section)
-3. Choose LLM model (default: gpt-4o-mini)
-4. Select TTS provider and voice
-5. Click "Generate Narration"
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/herrkaefer/vibe-narrator.git
+   cd vibe-narrator
+   ```
 
-**Note**: API keys are configured via environment variables (OPENAI_API_KEY, ELEVENLABS_API_KEY)
+2. **Install dependencies**
+
+   Sync dependencies:
+   ```bash
+   cd terminal_client
+   uv sync
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your OPENAI_API_KEY, LLM_MODEL, TTS_VOICE, TTS_PROVIDER, etc.
+   ```
+
+4. **Set script permissions**
+   ```bash
+   chmod +x terminal_client/narrate
+   ```
+
+5. **Create a shortcut (optional, for global access)**
+
+   ```bash
+   # Add to your ~/.zshrc or ~/.bashrc
+   alias narrate='$(path-to-vibe-narrator)/terminal_client/narrate'
+
+   # Then reload your shell
+   source ~/.zshrc  # or source ~/.bashrc
+   ```
+
+6. **Run with your agent**
+   ```bash
+   narrate codex
+   # or
+   narrate claude
+   # or
+   narrate gemini
+   ```
 
 ### Characters
 
@@ -50,20 +88,22 @@ Vibe Narrator transforms text into narrated speech with distinct character perso
 - **The Enlightened Zen Developer** - Calm, serene, meditative
 - **The Adoring Fanboy** - Extremely enthusiastic, worshipful
 - **The Whispering ASMR Developer** - Soft, intimate, soothing
+- (More to add...)
 
 ## MCP Server
 
-This Space also exposes an MCP (Model Context Protocol) server that can be used by external clients like Claude Desktop.
+This Gradio app also exposes an MCP (Model Context Protocol) server that can be used by external clients like Claude Desktop.
 
 ### MCP Endpoint
 
+When deployed on Hugging Face Spaces, the MCP server is available at:
 ```
 https://mcp-1st-birthday-vibe-narrator.hf.space/gradio_api/mcp/sse
 ```
 
 ### Client Configuration
 
-Add this to your MCP client configuration (e.g., `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Add this to your MCP client configuration (e.g., Claude Desktop):
 
 ```json
 {
@@ -77,51 +117,72 @@ Add this to your MCP client configuration (e.g., `~/Library/Application Support/
 
 ### Available MCP Tools
 
-<div style="display: flex; gap: 20px;">
-<div style="flex: 1;">
+- `configure`: Set up API keys and narration settings for the session
+- `narrate_text`: Generate narrated speech with personality (uses session config if parameters not provided)
+- `list_characters`: Get available character personalities
+- `get_config_status`: Check current configuration status
 
-- `configure` - Set up API keys and narration settings
-- `narrate` - Generate narrated speech with personality
-- `list_characters` - Get available character personalities
-- `get_config_status` - Check current configuration
+### System Architecture
 
-</div>
-<div style="flex: 1;">
-
-![Architecture](structure.jpeg)
-
-</div>
-</div>
-
-### Example MCP Usage
-
-Once connected to Claude Desktop:
-
-```
-User: Configure the narrator with my API key sk-... and use the zen_developer character
-
-Claude: [Calls configure tool]
-
-User: Narrate this text: "The code compiled successfully on the first try."
-
-Claude: [Calls narrate tool and returns audio + text]
-```
+![System Architecture](assets/structure.jpeg)
 
 ## How It Works
 
-1. **LLM Interpretation** - GPT processes your text through a character's personality filter
-2. **Streaming Generation** - Text is generated token-by-token with character-specific prompts
-3. **TTS Conversion** - Generated text is converted to speech using OpenAI or ElevenLabs TTS
-4. **Character Voice** - TTS instructions ensure the voice matches the character's personality
+### 🔄 Vibe Narrator MCP Server
+
+Narrator-mcp is a standard MCP server that can be deployed either locally or on a remote server.
+
+It provides the following tools:
+
+- **configure**: Set up API keys and narration settings
+- **narrate_text**: Generate narrated speech with personality
+- **list_characters**: Get available character personalities
+- **get_config_status**: Check current configuration status
+
+It can be used with any MCP client.
+
+### 🔌 Bridge Tool
+
+#### Let terminal agents talk while coding
+
+The bridge tool (`terminal_client/bridge.py`) is a Python script that helps:
+
+- **Capture terminal output**: Uses PTY to capture stdout/stderr from any command
+- **Clean terminal output**: Removes terminal formatting codes for clean text
+- **Buffer terminal output**: Accumulates output before sending for narration
+- **Connect to MCP server**: Uses the official MCP client SDK to communicate with the narrator server
+- **Play audio**: Handles real-time audio playback as narration is generated
+
+A `narrate` script is provided to help you start the bridge tool with a command:
+
+**Usage Example:**
+```bash
+narrate codex | claude | gemini | ...
+```
+
+This runs the agent with narration enabled.
+
+### 🌐 Compatibility
+
+#### Terminal Agent Compatibility
+
+Vibe Narrator is a standard MCP server that can be used with any MCP client.
+
+The terminal client `bridge.py` is compatible with many terminal-based agents: codex, Claude Code, Gemini, etc.
+
+**Why MCP?**
+- Standard protocol for AI tool integration
+- Works across different platforms and agents
 
 ## Technical Details
 
 ### Architecture
 
 - **Gradio Frontend** - Web UI for direct interaction
-- **FastMCP Backend** - MCP protocol server for external clients
+- **MCP Server Backend** - Standard MCP protocol server for external clients
 - **Dual Transport** - SSE for remote access, stdio for local development
 - **Async Streaming** - LLM and TTS run concurrently for low latency
+- **Bridge Tool** - Terminal client that captures output and connects to MCP server
 
 ### Environment Variables
 
@@ -133,12 +194,19 @@ Optional:
 
 ### Models
 
+**Supported LLM Providers:**
+- OpenAI
+- OpenRouter
+
+**Model Options:**
 - Default: `gpt-4o-mini` (fast and economical)
-- Also supports: `gpt-4o`, `gpt-4-turbo`, `gpt-3.5-turbo`
+- Also supports: `gpt-4o`, `gpt-5`, `gpt-5.1`
+
+Note: When using OpenRouter, configure `base_url` and `default_headers` via the `configure` tool or environment variables.
 
 ### Voices
 
-OpenAI TTS voices available: `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`
+OpenAI TTS voices available: `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `nova`, `onyx`, `sage`, `shimmer`
 
 ## Modes Explained
 
@@ -183,8 +251,9 @@ For local development and testing, see the main repository:
 
 Built with:
 - [Gradio](https://gradio.app/) - Web UI framework
-- [FastMCP](https://github.com/jlowin/fastmcp) - MCP server implementation
+- [MCP](https://modelcontextprotocol.io/) - Model Context Protocol for AI tool integration
 - [OpenAI](https://openai.com/) - LLM and TTS
+- [ElevenLabs](https://elevenlabs.io/) - Alternative TTS provider
 - [Hugging Face Spaces](https://huggingface.co/spaces) - Free hosting
 
 ## Social Media
