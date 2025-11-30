@@ -125,6 +125,12 @@ def _load_readme() -> str:
         f'src="{hf_space_base}assets/',
         content
     )
+    # Convert height="X" to style="height: Xpx;" for Gradio compatibility
+    content = re.sub(
+        r'(<img[^>]*)\s+height="(\d+)"([^>]*>)',
+        r'\1 style="height: \2px;"\3',
+        content
+    )
 
     return content
 
