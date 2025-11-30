@@ -656,6 +656,8 @@ So I figured: why not make them narrate while they work? Not the boring “think
 These clips are the characters I sketched out. Pick whichever matches your mood and let it keep you entertained while the agent does its thing.
 
 (Production note: audio playback and screen-recording quality still need tweaking—ran out of time. But you’ll get the idea.)
+
+[Published on X](https://x.com/herr_kaefer/status/1995047657434145103)
                         """
                     )
 
@@ -1264,6 +1266,10 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
             ### GitHub
 
             https://github.com/herrkaefer/vibe-narrator
+
+            ### Social Media
+
+            [Post on X](https://x.com/herr_kaefer/status/1995047657434145103)
 
             ### License
 

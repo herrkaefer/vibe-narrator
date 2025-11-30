@@ -187,6 +187,10 @@ Built with:
 - [OpenAI](https://openai.com/) - LLM and TTS
 - [Hugging Face Spaces](https://huggingface.co/spaces) - Free hosting
 
+## Social Media
+
+Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/status/1995047657434145103)
+
 ## License
 
 MIT License - See repository for details
