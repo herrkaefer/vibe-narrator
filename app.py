@@ -657,7 +657,7 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
 
 (Production note: audio playback and screen-recording quality still need tweaking—ran out of time. But you’ll get the idea.)
 
-[Published on X](https://x.com/herr_kaefer/status/1995047657434145103)
+[Published on X](https://x.com/herr_kaefer/status/1995168703785079174)
                         """
                     )
 
@@ -1271,7 +1271,7 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
 
             ### Social Media
 
-            [Post on X](https://x.com/herr_kaefer/status/1995047657434145103)
+            [Post on X](https://x.com/herr_kaefer/status/1995168703785079174)
 
             ### License
 

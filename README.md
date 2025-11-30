@@ -1,6 +1,6 @@
 ---
 title: Vibe Narrator
-emoji: 🎨
+emoji: 🎭
 colorFrom: indigo
 colorTo: pink
 sdk: gradio
@@ -16,7 +16,7 @@ tags:
   - voice-ai
 ---
 
-# 🎨 Vibe Narrator
+# 🎭 Vibe Narrator
 
 **Stylized voice embodiment for terminal agents. Give your code a voice with personality!**
 
@@ -189,7 +189,7 @@ Built with:
 
 ## Social Media
 
-Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/status/1995047657434145103)
+Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/status/1995168703785079174)
 
 ## License
 
