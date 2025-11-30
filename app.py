@@ -613,7 +613,7 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
     """, visible=False)
 
     # Header with logo and title
-    logo_path = Path(__file__).parent / "logo.png"
+    logo_path = Path(__file__).parent / "assets" / "logo.png"
     logo_html = ""
     if logo_path.exists():
         try:
@@ -647,34 +647,62 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
             with gr.Row():
                 # First column: Demo Videos
                 with gr.Column(scale=1):
-                    gr.Markdown("## 🎬 Demo Videos")
+                    gr.Markdown("## 💡 A short story")
+                    gr.Markdown(
+                        """This little project started because my coding agents got too good. I’d give them a task, they’d dive into the terminal for ages, and before I knew it I’d completely forgotten what I even asked for.
 
-                    # Video placeholder
-                    gr.Markdown("""
-                    <div style="text-align: center; padding: 40px; background-color: #f0f0f0; border-radius: 8px; margin: 20px 0;">
-                        <h3>📹 Demo Videos Coming Soon</h3>
-                        <p>I am preparing screen demonstration videos to showcase Vibe Narrator's workflow.</p>
-                        <p><em>Demo videos coming soon...</em></p>
-                    </div>
-                    """)
+So I figured: why not make them narrate while they work? Not the boring “thinking…” steps and random code fragments muttered under their breath, but an actual personality—like pairing with a coworker who can’t do anything quietly and insists on turning every tiny move into a performance.
 
-                    # Placeholder for future YouTube video embedding
-                    # Uncomment and update when videos are ready:
-                    # gr.HTML("""
-                    # <div style="text-align: center; margin: 20px 0;">
-                    #     <iframe width="560" height="315"
-                    #             src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-                    #             frameborder="0"
-                    #             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    #             allowfullscreen>
-                    #     </iframe>
-                    # </div>
-                    # """)
+These clips are the characters I sketched out. Pick whichever matches your mood and let it keep you entertained while the agent does its thing.
+
+(Production note: audio playback and screen-recording quality still need tweaking—ran out of time. But you’ll get the idea.)
+                        """
+                    )
+
+                    gr.Markdown("## 🎬 Video demos")
+
+                    # Find and display demo videos from assets folder
+                    assets_dir = Path(__file__).parent / "assets"
+                    video_files = []
+                    if assets_dir.exists():
+                        # Prioritize MP4 files, fallback to other formats if MP4 not available
+                        # First, collect all video files
+                        all_videos = {}
+                        video_extensions = [".mp4", ".mov", ".avi", ".webm", ".mkv"]
+                        for ext in video_extensions:
+                            for video_file in assets_dir.glob(f"*{ext}"):
+                                base_name = video_file.stem
+                                # If we haven't seen this video yet, or if this is an MP4 (preferred)
+                                if base_name not in all_videos or ext == ".mp4":
+                                    all_videos[base_name] = video_file
+
+                        # Convert to sorted list
+                        video_files = sorted(all_videos.values(), key=lambda x: x.name)
+
+                    if video_files:
+                        # Create a video player for each video
+                        for video_file in video_files:
+                            # Extract character name from filename for display
+                            video_name = video_file.stem.replace("_", " ").title()
+                            gr.Video(
+                                value=str(video_file),
+                                label=video_name,
+                                show_label=True,
+                                container=True,
+                            )
+                    else:
+                        # Fallback if no videos found
+                        gr.Markdown("""
+                        <div style="text-align: center; padding: 40px; background-color: #f0f0f0; border-radius: 8px; margin: 20px 0;">
+                            <h3>📹 Demo Videos Coming Soon</h3>
+                            <p>Demo videos will appear here when available.</p>
+                        </div>
+                        """)
 
                 # Second column: How It Works and explanations
                 with gr.Column(scale=1):
                     # Architecture diagram at the top
-                    structure_image_path = Path(__file__).parent / "structure.jpeg"
+                    structure_image_path = Path(__file__).parent / "assets" / "structure.jpeg"
                     if structure_image_path.exists():
                         gr.Image(
                             value=str(structure_image_path),
