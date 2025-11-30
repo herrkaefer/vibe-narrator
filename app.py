@@ -22,7 +22,7 @@ load_dotenv()
 
 # Import underlying functions and classes
 from narrator_mcp.server import generate_narration, generate_narration_stream, AppContext
-from narrator_mcp.characters import get_characters_list, get_character
+from narrator_mcp.characters import get_characters_list, get_character, CHARACTERS
 from narrator_mcp.session import Session, DEFAULT_MODEL, DEFAULT_VOICE, DEFAULT_MODE
 from narrator_mcp.chunker import Chunker
 from narrator_mcp.tts import detect_tts_provider
@@ -684,8 +684,36 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
                     if video_files:
                         # Create a video player for each video
                         for video_file in video_files:
-                            # Extract character name from filename for display
-                            video_name = video_file.stem.replace("_", " ").title()
+                            # Map video filename to character name for better display
+                            video_stem = video_file.stem
+                            # Remove "_narrates" suffix if present
+                            base_name = video_stem.replace("_narrates", "")
+
+                            # Try multiple matching strategies to find character
+                            character_id = None
+                            video_name = None
+
+                            # Strategy 1: Direct match (e.g., "reluctant_developer_narrates" -> "reluctant_developer")
+                            if base_name in CHARACTERS:
+                                character_id = base_name
+                            # Strategy 2: Add "_developer" suffix (e.g., "overconfident_senior" -> "overconfident_senior_developer")
+                            elif f"{base_name}_developer" in CHARACTERS:
+                                character_id = f"{base_name}_developer"
+                            # Strategy 3: Try as-is if it already ends with _developer
+                            elif base_name.endswith("_developer") and base_name in CHARACTERS:
+                                character_id = base_name
+
+                            # Get character name if we found a match
+                            if character_id:
+                                char_obj = get_character(character_id)
+                                # Only use the name if it's not the default fallback
+                                if char_obj.id == character_id:
+                                    video_name = char_obj.name
+
+                            # Fallback to formatted filename if no match found
+                            if not video_name:
+                                video_name = video_stem.replace("_", " ").title()
+
                             gr.Video(
                                 value=str(video_file),
                                 label=video_name,
