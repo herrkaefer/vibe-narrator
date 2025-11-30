@@ -19,6 +19,10 @@ class AudioPlayer:
     - Windows (via PyAudio + pydub)
     """
 
+    # Audio buffer configuration - larger buffers reduce underrun risk on slower machines
+    FRAMES_PER_BUFFER = 4096  # Increased from default 1024 to reduce buffer underrun
+    FADE_MS = 5  # Milliseconds of fade in/out to reduce pops between chunks
+
     def __init__(self):
         self.audio_queue: queue.Queue = queue.Queue()
         self.is_playing = False
@@ -109,6 +113,10 @@ class AudioPlayer:
                         audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
                         logger.debug(f"Playing audio chunk: {len(audio)}ms, {audio.frame_rate}Hz")
 
+                        # Apply fade in/out to reduce pops between chunks
+                        if len(audio) > self.FADE_MS * 2:
+                            audio = audio.fade_in(self.FADE_MS).fade_out(self.FADE_MS)
+
                         # Check if we need to recreate the stream (format changed)
                         if (stream is None or
                             current_format != p.get_format_from_width(audio.sample_width) or
@@ -129,9 +137,10 @@ class AudioPlayer:
                                 format=current_format,
                                 channels=current_channels,
                                 rate=current_rate,
-                                output=True
+                                output=True,
+                                frames_per_buffer=self.FRAMES_PER_BUFFER
                             )
-                            logger.debug(f"🎚️  Opened audio stream: {current_rate}Hz, {current_channels}ch")
+                            logger.debug(f"🎚️  Opened audio stream: {current_rate}Hz, {current_channels}ch, buffer={self.FRAMES_PER_BUFFER}")
 
                         # Write audio data to stream
                         stream.write(audio.raw_data)

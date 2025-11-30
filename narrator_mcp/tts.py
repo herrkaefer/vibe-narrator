@@ -78,7 +78,14 @@ async def _stream_openai_tts(
     default_headers: Optional[dict] = None,
 ) -> AsyncIterator[bytes]:
     """Stream TTS audio from OpenAI."""
-    client_kwargs = {"api_key": api_key}
+    # Set timeout to prevent indefinite blocking - TTS can take a while for longer text
+    # Using 60s total timeout with 30s connect timeout
+    timeout_config = httpx.Timeout(60.0, connect=30.0)
+
+    client_kwargs = {
+        "api_key": api_key,
+        "timeout": timeout_config,
+    }
     if base_url:
         client_kwargs["base_url"] = base_url
     if default_headers:

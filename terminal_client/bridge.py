@@ -808,15 +808,35 @@ def clean_text(text: str) -> str:
 class TextBuffer:
     """
     Text buffer that accumulates data and records timestamps to determine when to send.
+    Uses list-based accumulation for O(1) append instead of O(n) string concatenation.
     """
 
     def __init__(self, min_window_seconds=2.0, pause_threshold=5.0):
-        self.buffer = ""
+        self._chunks: list[str] = []  # Use list for efficient append
+        self._buffer_len = 0  # Track total length without joining
         self.window_start_time = None
         self.last_data_time = None
         self.min_window_seconds = min_window_seconds
         self.pause_threshold = pause_threshold
         self.force_flush_all = False
+
+    @property
+    def buffer(self) -> str:
+        """Get the current buffer content (joins chunks on demand)."""
+        if not self._chunks:
+            return ""
+        if len(self._chunks) == 1:
+            return self._chunks[0]
+        # Join and consolidate to single chunk for efficiency
+        joined = ''.join(self._chunks)
+        self._chunks = [joined] if joined else []
+        return joined
+
+    @buffer.setter
+    def buffer(self, value: str):
+        """Set the buffer content."""
+        self._chunks = [value] if value else []
+        self._buffer_len = len(value) if value else 0
 
     def _split_incomplete_escape_tail(self, text: str):
         """Return (safe_text, tail) ensuring we don't cut through ANSI sequences."""
@@ -840,18 +860,26 @@ class TextBuffer:
 
     def add_data(self, text: str, current_time: float):
         """Add new data to buffer."""
-        self.buffer += text
+        if text:
+            self._chunks.append(text)
+            self._buffer_len += len(text)
         if self.window_start_time is None:
             self.window_start_time = current_time
         self.last_data_time = current_time
 
     def has_complete_lines(self) -> bool:
         """Check if buffer has complete lines."""
-        return self.buffer and '\n' in self.buffer
+        if not self._chunks:
+            return False
+        # Check each chunk for newline to avoid full join
+        for chunk in self._chunks:
+            if '\n' in chunk:
+                return True
+        return False
 
     def should_flush(self, current_time: float) -> bool:
         """Determine if buffer should be flushed."""
-        if not self.buffer:
+        if self._buffer_len == 0:
             return False
 
         has_complete = self.has_complete_lines()
@@ -863,7 +891,7 @@ class TextBuffer:
             if has_complete:
                 self.force_flush_all = False
                 return True
-            elif ALLOW_FLUSH_WITHOUT_NEWLINES and len(self.buffer) > 0:
+            elif ALLOW_FLUSH_WITHOUT_NEWLINES and self._buffer_len > 0:
                 self.force_flush_all = True
                 return True
 
@@ -873,7 +901,7 @@ class TextBuffer:
             if has_complete:
                 self.force_flush_all = False
                 return True
-            if len(self.buffer) > 0:
+            if self._buffer_len > 0:
                 self.force_flush_all = True
                 return True
 
@@ -881,22 +909,28 @@ class TextBuffer:
 
     def flush(self) -> str:
         """Flush buffer, return complete lines."""
-        if not self.buffer:
+        if self._buffer_len == 0:
             return ""
 
-        last_newline = self.buffer.rfind('\n')
+        # Join all chunks
+        buffer_str = self.buffer
+
+        last_newline = buffer_str.rfind('\n')
 
         if last_newline == -1 or self.force_flush_all:
-            result = self.buffer
-            self.buffer = ""
+            result = buffer_str
+            self._chunks = []
+            self._buffer_len = 0
             self.window_start_time = None
             self.last_data_time = None
             self.force_flush_all = False
         else:
-            result = self.buffer[:last_newline + 1]
-            self.buffer = self.buffer[last_newline + 1:]
+            result = buffer_str[:last_newline + 1]
+            remaining = buffer_str[last_newline + 1:]
+            self._chunks = [remaining] if remaining else []
+            self._buffer_len = len(remaining)
 
-            if self.buffer:
+            if remaining:
                 self.window_start_time = time.time()
             else:
                 self.window_start_time = None
@@ -904,7 +938,11 @@ class TextBuffer:
 
         safe_text, tail = self._split_incomplete_escape_tail(result)
         if tail:
-            self.buffer = tail + self.buffer
+            if self._chunks:
+                self._chunks.insert(0, tail)
+            else:
+                self._chunks = [tail]
+            self._buffer_len += len(tail)
             if self.window_start_time is None:
                 self.window_start_time = time.time()
             self.last_data_time = time.time()
@@ -915,15 +953,16 @@ class TextBuffer:
 
     def has_data(self) -> bool:
         """Check if buffer has data."""
-        return bool(self.buffer)
+        return self._buffer_len > 0
 
     def flush_all(self) -> str:
         """Force flush all buffer contents."""
-        if not self.buffer:
+        if self._buffer_len == 0:
             return ""
 
         result = self.buffer
-        self.buffer = ""
+        self._chunks = []
+        self._buffer_len = 0
         self.window_start_time = None
         self.last_data_time = None
         return result
@@ -959,6 +998,48 @@ def _sync_pty_window_size(master_fd):
         logger.debug(f"Failed to update PTY window size: {exc}")
 
 
+class AsyncFdReader:
+    """Async file descriptor reader using event loop's add_reader for efficient I/O."""
+
+    def __init__(self, fd: int, loop: asyncio.AbstractEventLoop):
+        self.fd = fd
+        self.loop = loop
+        self._pending_future: asyncio.Future | None = None
+
+    async def read(self, size: int = 4096) -> bytes:
+        """Read data from file descriptor asynchronously."""
+        future = self.loop.create_future()
+        self._pending_future = future
+
+        def _on_readable():
+            self.loop.remove_reader(self.fd)
+            if future.done():
+                return
+            try:
+                data = os.read(self.fd, size)
+                future.set_result(data)
+            except OSError as e:
+                future.set_exception(e)
+
+        self.loop.add_reader(self.fd, _on_readable)
+        try:
+            return await future
+        except asyncio.CancelledError:
+            self.loop.remove_reader(self.fd)
+            raise
+        finally:
+            self._pending_future = None
+
+    def cancel(self):
+        """Cancel any pending read operation."""
+        try:
+            self.loop.remove_reader(self.fd)
+        except Exception:
+            pass
+        if self._pending_future and not self._pending_future.done():
+            self._pending_future.cancel()
+
+
 async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
     """Run command in PTY with narration."""
     # Create PTY
@@ -986,6 +1067,34 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
     )
 
     os.close(slave_fd)
+
+    # Track background narration tasks to avoid blocking I/O loop
+    narration_tasks: list[asyncio.Task] = []
+    # Limit concurrent narration tasks to prevent overwhelming the system
+    narration_semaphore = asyncio.Semaphore(2)
+    # Timeout for individual narration requests (prevent indefinite blocking)
+    NARRATION_TIMEOUT = 60.0  # 60 seconds max per narration
+
+    async def send_narration_async(text: str):
+        """Send narration in background without blocking I/O loop."""
+        try:
+            # Use asyncio.timeout to prevent tasks from blocking forever
+            async with asyncio.timeout(NARRATION_TIMEOUT):
+                async with narration_semaphore:
+                    await bridge.send_chunk(text)
+        except asyncio.TimeoutError:
+            logger.warning(f"⏰ Narration timed out after {NARRATION_TIMEOUT}s, skipping")
+        except Exception as e:
+            logger.error(f"❌ Background narration failed: {e}")
+
+    def schedule_narration(text: str):
+        """Schedule a narration task and track it."""
+        task = asyncio.create_task(send_narration_async(text))
+        narration_tasks.append(task)
+        # Clean up completed tasks periodically to avoid memory growth
+        completed = [t for t in narration_tasks if t.done()]
+        for t in completed:
+            narration_tasks.remove(t)
 
     # Define restore_terminal BEFORE setting raw mode, so it's always available
     def restore_terminal():
@@ -1027,10 +1136,14 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
         # Text buffer
         text_buffer = TextBuffer(min_window_seconds=3.5, pause_threshold=5.0)
 
-        # Get event loop for async executor
+        # Get event loop for async I/O
         loop = asyncio.get_event_loop()
 
-        # Async I/O loop
+        # Create async readers for efficient I/O
+        pty_reader = AsyncFdReader(master_fd, loop)
+        stdin_reader = AsyncFdReader(sys.stdin.fileno(), loop) if stdin_is_tty else None
+
+        # Async I/O loop using concurrent tasks for better responsiveness
         try:
             while True:
                 current_time = time.time()
@@ -1041,50 +1154,21 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
                     if buffered_text:
                         clean = clean_text(buffered_text)
                         if clean:
-                            await bridge.send_chunk(clean)
-
-                # Non-blocking select
-                fds_to_read = [master_fd]
-                if stdin_is_tty:
-                    fds_to_read.append(sys.stdin)
-                ready, _, _ = select.select(fds_to_read, [], [], 0.1)
-
-                # Read from PTY
-                if master_fd in ready:
-                    data = await loop.run_in_executor(None, os.read, master_fd, 1024)
-                    if not data:
-                        break
-
-                    # Display to terminal
-                    sys.stdout.buffer.write(data)
-                    sys.stdout.buffer.flush()
-
-                    # Buffer for narration
-                    text = data.decode('utf-8', errors='replace')
-                    text_buffer.add_data(text, current_time)
-
-                # Forward user input
-                if stdin_is_tty and sys.stdin in ready:
-                    data = await loop.run_in_executor(None, os.read, sys.stdin.fileno(), 1024)
-                    if not data:
-                        break
-                    await loop.run_in_executor(None, os.write, master_fd, data)
+                            schedule_narration(clean)
 
                 # Check if command finished
                 if cmd_proc.poll() is not None:
-                    # Read remaining data
+                    # Read remaining data with short timeout
                     while True:
                         ready, _, _ = select.select([master_fd], [], [], 0.1)
                         if not ready:
                             break
                         try:
-                            data = await loop.run_in_executor(None, os.read, master_fd, 1024)
+                            data = os.read(master_fd, 4096)
                             if not data:
                                 break
-
                             sys.stdout.buffer.write(data)
                             sys.stdout.buffer.flush()
-
                             text = data.decode('utf-8', errors='replace')
                             text_buffer.add_data(text, current_time)
                         except OSError:
@@ -1095,13 +1179,74 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
                     if remaining:
                         clean = clean_text(remaining)
                         if clean:
-                            await bridge.send_chunk(clean)
+                            schedule_narration(clean)
                     break
+
+                # Create concurrent read tasks for PTY and stdin
+                read_tasks = []
+                pty_task = asyncio.create_task(pty_reader.read(4096))
+                read_tasks.append(('pty', pty_task))
+
+                if stdin_reader:
+                    stdin_task = asyncio.create_task(stdin_reader.read(1024))
+                    read_tasks.append(('stdin', stdin_task))
+
+                # Wait for any read to complete with timeout for buffer flush checks
+                try:
+                    done, pending = await asyncio.wait(
+                        [t for _, t in read_tasks],
+                        timeout=0.1,
+                        return_when=asyncio.FIRST_COMPLETED
+                    )
+
+                    # Cancel pending tasks
+                    for task in pending:
+                        task.cancel()
+                        try:
+                            await task
+                        except asyncio.CancelledError:
+                            pass
+
+                    # Process completed tasks
+                    for name, task in read_tasks:
+                        if task in done:
+                            try:
+                                data = task.result()
+                                if not data:
+                                    # EOF - break loop
+                                    break
+
+                                if name == 'pty':
+                                    # Display PTY output to terminal
+                                    sys.stdout.buffer.write(data)
+                                    sys.stdout.buffer.flush()
+                                    # Buffer for narration
+                                    text = data.decode('utf-8', errors='replace')
+                                    text_buffer.add_data(text, current_time)
+                                elif name == 'stdin':
+                                    # Forward user input to PTY
+                                    os.write(master_fd, data)
+                            except OSError:
+                                break
+                    else:
+                        # No break occurred, continue loop
+                        continue
+                    # Break occurred in inner loop
+                    break
+
+                except asyncio.TimeoutError:
+                    # Timeout is expected - allows buffer flush checks
+                    continue
 
         except KeyboardInterrupt:
             logger.info("⚠️ Interrupted by user")
         finally:
             restore_terminal()
+
+            # Cancel any pending async readers
+            pty_reader.cancel()
+            if stdin_reader:
+                stdin_reader.cancel()
 
             # Process final remaining buffer
             if text_buffer.has_data():
@@ -1109,7 +1254,14 @@ async def run_pty_with_narration(bridge: MCPBridge, cmd: list[str]):
                 if buffered_text:
                     clean = clean_text(buffered_text)
                     if clean:
-                        await bridge.send_chunk(clean)
+                        schedule_narration(clean)
+
+            # Wait for all pending narration tasks to complete
+            if narration_tasks:
+                pending = [t for t in narration_tasks if not t.done()]
+                if pending:
+                    logger.info(f"⏳ Waiting for {len(pending)} pending narration tasks...")
+                    await asyncio.gather(*pending, return_exceptions=True)
 
     finally:
         # Ensure terminal is restored even if inner try block fails
