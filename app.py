@@ -191,6 +191,44 @@ def get_config_status() -> str:
     return json.dumps(status)
 
 
+def get_runtime_status_markdown() -> str:
+    """Human-readable runtime status for the UI."""
+    openai_status = "✅ OPENAI_API_KEY loaded" if OPENAI_API_KEY else "❌ OPENAI_API_KEY missing"
+    elevenlabs_status = (
+        "✅ ELEVENLABS_API_KEY loaded" if ELEVENLABS_API_KEY else "ℹ️ ELEVENLABS_API_KEY not set (only needed for ElevenLabs TTS)"
+    )
+
+    # Use whichever key exists to hint at provider auto-detection
+    provider_hint = None
+    candidate_key = ELEVENLABS_API_KEY or OPENAI_API_KEY
+    if candidate_key:
+        provider_hint = detect_tts_provider(candidate_key)
+
+    # Resolve character name from current session/default
+    def _character_label() -> str:
+        if _global_session.character:
+            try:
+                return get_character(_global_session.character).name
+            except Exception:
+                return _global_session.character
+        return DEFAULT_CHARACTER
+
+    lines = [
+        "### Runtime setup check",
+        f"- {openai_status}",
+        f"- {elevenlabs_status}",
+        f"- Default LLM model: {_global_session.llm_model}",
+        f"- Default TTS voice: {_global_session.voice or OPENAI_TTS_VOICE}",
+        f"- Default character: {_character_label()}",
+        f"- MCP base URL override: {_global_session.base_url or 'none'}",
+    ]
+
+    if provider_hint:
+        lines.append(f"- TTS provider auto-detect would use: {provider_hint}")
+
+    return "\n".join(lines)
+
+
 async def narrate_text(
     prompt: str,
     character: str | None = None,
@@ -647,61 +685,55 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
                     gr.Markdown("## 📖 How It Works")
 
-                    with gr.Accordion("🔄 Workflow", open=True):
+                    with gr.Accordion("🔄 Vibe Narrator MCP Server", open=True):
                         gr.Markdown("""
-                        ### Terminal Agent Integration
+                        ### Vibe Narrator MCP Server
 
-                        Vibe Narrator uses a **bridge tool** (`terminal_client/bridge.py`) to capture terminal output from your coding agents and convert it into stylized voice narration.
+                        Narrator-mcp is a standard MCP server that can be delopyed either locally or on a remote server.
 
-                        **Process:**
-                        1. The bridge tool runs your terminal agent (e.g., `claude`, `cursor`, etc.) in a PTY (pseudo-terminal)
-                        2. Terminal output is captured and buffered
-                        3. Text chunks are sent to the MCP server via the `narrate_text` tool
-                        4. The LLM interprets the text in your chosen character's personality
-                        5. TTS generates audio with the character's voice
-                        6. Audio is played in real-time through your speakers
+                        It provides the following tools:
 
-                        This creates a seamless, hands-free narration experience during your coding sessions.
+                        - **configure**: Set up API keys and narration settings
+                        - **narrate_text**: Generate narrated speech with personality
+                        - **list_characters**: Get available character personalities
+                        - **get_config_status**: Check current configuration status
+
+                        It can be used with any MCP client.
                         """)
 
-                    with gr.Accordion("🔌 Bridge Tool", open=False):
+                    with gr.Accordion("🔌 Bridge Tool", open=True):
                         gr.Markdown("""
-                        ### What is the Bridge Tool?
+                        ### Let terminal agents talk while coding
 
-                        The bridge tool (`terminal_client/bridge.py`) is a Python script that:
+                        The bridge tool (`terminal_client/bridge.py`) is a Python script that helps:
 
-                        - **Captures terminal output**: Uses PTY to capture stdout/stderr from any command
-                        - **Cleans ANSI codes**: Removes terminal formatting codes for clean text
-                        - **Buffers intelligently**: Accumulates output before sending for narration
-                        - **Connects to MCP**: Uses the official MCP client SDK to communicate with the narrator server
-                        - **Plays audio**: Handles real-time audio playback as narration is generated
+                        - **Capture terminal output**: Uses PTY to capture stdout/stderr from any command
+                        - **Clean terminal output**: Removes terminal formatting codes for clean text
+                        - **Buffer terminal output**: Accumulates output before sending for narration
+                        - **Connect to MCP server**: Uses the official MCP client SDK to communicate with the narrator server
+                        - **Play audio**: Handles real-time audio playback as narration is generated
 
+                        A `narrate` script is provided to help you start the bridge tool with a command:
                         **Usage Example:**
                         ```bash
-                        uv run python bridge.py claude
+                        narrate codex | claude | gemini | ...
                         ```
 
-                        This runs the `claude` command with narration enabled. All agent output will be automatically narrated with your chosen character's voice.
+                        This runs the agent with narration enabled.
                         """)
 
-                    with gr.Accordion("🌐 Compatibility", open=False):
+                    with gr.Accordion("🌐 Compatibility", open=True):
                         gr.Markdown("""
                         ### Terminal Agent Compatibility
 
-                        Vibe Narrator is compatible with any terminal-based agent through the MCP (Model Context Protocol) standard:
+                        Vibe Narrator is a standard MCP server that can be used with any MCP client.
 
-                        - **Cursor**: Configure MCP server in Cursor settings
-                        - **Claude Desktop**: Add narrator-mcp to MCP servers configuration
-                        - **Custom Agents**: Any tool that supports MCP protocol
-                        - **Command-line Tools**: Use the bridge tool with any command
 
-                        The MCP protocol ensures universal compatibility - as long as your agent can communicate via MCP, Vibe Narrator can narrate its output.
+                        The terminal client `bridge.py` is compatible with many terminal-based agents: codex, Claude Code, Gemini, etc.
 
                         **Why MCP?**
                         - Standard protocol for AI tool integration
                         - Works across different platforms and agents
-                        - No vendor lock-in
-                        - Easy to configure and use
                         """)
 
 
