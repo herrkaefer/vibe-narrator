@@ -1244,6 +1244,8 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
 
             The bridge script helps connect terminal-running agents to the MCP server and plays audio.
 
+            Supported terminal-running agents: `codex`, `claude`, `gemini`, etc.
+
             ### Supported LLM Models
 
             - OpenAI
