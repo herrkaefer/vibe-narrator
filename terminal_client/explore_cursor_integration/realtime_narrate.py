@@ -90,7 +90,6 @@ async def realtime_narrate():
         default_headers=default_headers,
         tts_api_key=tts_api_key,
         tts_provider=tts_provider,
-        use_stdio=False
     ) as bridge:
         loop = asyncio.get_event_loop()
 

@@ -81,7 +81,6 @@ async def narrate_and_play(prompt: str):
         default_headers=default_headers,
         tts_api_key=tts_api_key,
         tts_provider=tts_provider,
-        use_stdio=False
     ) as bridge:
         # Use bridge's send_chunk which handles audio playback
         await bridge.send_chunk(prompt)

@@ -14,6 +14,13 @@ tags:
   - text-to-speech
   - mcp-server
   - voice-ai
+  - gradio-app
+  - agent-embodiment
+  - terminal-agents
+  - coding-agents
+  - voice-personality
+  - elevenlabs
+  - multimodal-ai
 ---
 
 <img src="assets/logo.png" alt="logo" height="128"/>

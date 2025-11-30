@@ -1,12 +1,14 @@
 #!/bin/bash
-# narrator-bridge - Run coding agent with narration
-# Usage: narrator-bridge [--use-stdio] <command> [args...]
+# narrate - Run coding agent with narration
+# Usage: narrate <command> [args...]
 #
 # This script can be run from any directory.
 # The command will execute in the current working directory.
 #
-# Options:
-#   --use-stdio    Use stdio transport for local MCP server (default: streamable-http for remote)
+# Transport is auto-selected based on NARRATOR_REMOTE_MCP_URL:
+#   - Not set: stdio (local mode, recommended)
+#   - localhost URL: streamable-http
+#   - Remote URL: sse
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
