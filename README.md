@@ -43,9 +43,10 @@ Star the repository on [GitHub](https://github.com/herrkaefer/vibe-narrator)
 
 - **Unique Character Personalities** - From burned-out developers to zen masters
 - **Dual Modes** - Narration (retelling) or Chat (conversation)
-- **MCP Server Integration** - Use as a standalone service or integrate with Claude Desktop
-- **Gradio Web UI** - Easy-to-use interface for quick narration
-- **OpenAI & ElevenLabs Support** - Choose your TTS provider
+- **MCP Server** - Local or Remote deployment
+- **Termial bridging with MCP Server Integration** - Connect coding agents with MCP Server
+- **Gradio app** - MCP Server as a Gradio app
+- **OpenAI & ElevenLabs Support** - Choose your TTS provider, customize the voices
 
 ## Quick Start
 
@@ -61,6 +62,8 @@ Star the repository on [GitHub](https://github.com/herrkaefer/vibe-narrator)
 
    Sync dependencies:
    ```bash
+   cd narrator-mcp
+   uv sync
    cd terminal_client
    uv sync
    ```
