@@ -635,6 +635,16 @@ with gr.Blocks(title="Vibe Narrator - Stylized Voice Embodiment") as demo:
 
                 # Second column: How It Works and explanations
                 with gr.Column(scale=1):
+                    # Architecture diagram at the top
+                    structure_image_path = Path(__file__).parent / "structure.jpeg"
+                    if structure_image_path.exists():
+                        gr.Image(
+                            value=str(structure_image_path),
+                            label="System Architecture",
+                            show_label=True,
+                            container=True,
+                        )
+
                     gr.Markdown("## 📖 How It Works")
 
                     with gr.Accordion("🔄 Workflow", open=True):

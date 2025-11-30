@@ -8,7 +8,7 @@ sdk_version: 6.0.1
 app_file: app.py
 pinned: false
 license: mit
-short_description: Stylized voice embodiment for terminal agents. Agents talk.
+short_description: Agents talk with personality while coding for you.
 tags:
   - building-mcp-track-creative
   - text-to-speech
@@ -58,10 +58,8 @@ This Space also exposes an MCP (Model Context Protocol) server that can be used 
 ### MCP Endpoint
 
 ```
-https://YOUR-USERNAME-vibe-narrator.hf.space/gradio_api/mcp/sse
+https://mcp-1st-birthday-vibe-narrator.hf.space/gradio_api/mcp/sse
 ```
-
-Replace `YOUR-USERNAME` with your Hugging Face username.
 
 ### Client Configuration
 
@@ -71,7 +69,7 @@ Add this to your MCP client configuration (e.g., `~/Library/Application Support/
 {
   "mcpServers": {
     "narrator-mcp": {
-      "url": "https://YOUR-USERNAME-vibe-narrator.hf.space/gradio_api/mcp/sse"
+      "url": "https://mcp-1st-birthday-vibe-narrator.hf.space/gradio_api/mcp/sse"
     }
   }
 }
@@ -79,10 +77,21 @@ Add this to your MCP client configuration (e.g., `~/Library/Application Support/
 
 ### Available MCP Tools
 
+<div style="display: flex; gap: 20px;">
+<div style="flex: 1;">
+
 - `configure` - Set up API keys and narration settings
 - `narrate` - Generate narrated speech with personality
 - `list_characters` - Get available character personalities
 - `get_config_status` - Check current configuration
+
+</div>
+<div style="flex: 1;">
+
+![Architecture](structure.jpeg)
+
+</div>
+</div>
 
 ### Example MCP Usage
 
