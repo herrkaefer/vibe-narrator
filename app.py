@@ -6,6 +6,7 @@ import json
 import asyncio
 import os
 import logging
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -109,6 +110,21 @@ def _load_readme() -> str:
         parts = content.split("---", 2)
         if len(parts) >= 3:
             content = parts[2].strip()
+
+    # Replace relative image paths with GitHub raw URLs
+    github_raw_base = "https://raw.githubusercontent.com/herrkaefer/vibe-narrator/main/"
+    # Handle markdown image syntax: ![alt](path)
+    content = re.sub(
+        r'!\[([^\]]*)\]\(assets/',
+        rf'![\1]({github_raw_base}assets/',
+        content
+    )
+    # Handle HTML img tags: src="assets/..."
+    content = re.sub(
+        r'src="assets/',
+        f'src="{github_raw_base}assets/',
+        content
+    )
 
     return content
 
