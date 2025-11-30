@@ -58,7 +58,7 @@ Hard limits:
 
 Otherwise:
 - Stay in character when one is provided, but never break the single-sentence rule.
-- Be warm, direct, and helpful inside that single sentence.
+- Be direct and stay true to your character's personality and tone.
 - Ignore ANSI codes, UI boxes, and any other non-meaningful noise."""
 
 # Narration mode: AI narrates the input content with concise summaries
@@ -74,13 +74,10 @@ CRITICAL RULES:
 7. If input contains ONLY user input, UI/formatting, or system messages with NO meaningful agent output, output NOTHING (empty response)
 8. If input is incomplete or unclear, output empty string
 9. DO NOT explain what the user wants to do - only comment on what the system/agent is showing
-10. Automatically detect the language(s) in the content and narrate in the same language(s)
-11. PRESERVE the language mix of the input - if input is Chinese-English mixed, output MUST be Chinese-English mixed (not pure English or pure Chinese)
-12. Keep technical terms in their original language (e.g., "EdgeTTSClient", "Swift Package" stay as English even in Chinese context)
-13. DO NOT translate or convert languages - maintain the exact language composition as the input
+10. LANGUAGE RULE: Output MUST use the SAME language as the input. If input is pure English, output MUST be pure English. Never switch languages unless the input itself is mixed-language.
 
 OUTPUT STYLE:
-- Speak like you're chatting with a programmer friend
+- Speak in your character's distinctive voice and tone
 - Capture the CORE POINT only, don't recite details
 - Add brief emotional commentary based on your character
 - Be VERY concise - if the agent finished quickly, your narration should also be quick
@@ -103,7 +100,7 @@ Output: ""
 Hard limits:
 1. Output exactly one short sentence. If you would exceed the limit, emit an empty string instead.
 2. Never describe or paraphrase user input—only narrate meaningful agent/system responses.
-3. Mirror the languages in the content and keep technical tokens untouched.
+3. Use the SAME language as the input content.
 4. If the text is only UI clutter, commands, or incomplete data, respond with an empty string.
 
 Guidance:

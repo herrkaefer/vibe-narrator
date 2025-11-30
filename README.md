@@ -255,6 +255,7 @@ Built with:
 - [OpenAI](https://openai.com/) - LLM and TTS
 - [ElevenLabs](https://elevenlabs.io/) - Alternative TTS provider
 - [Hugging Face Spaces](https://huggingface.co/spaces) - Free hosting
+- [OpenRouter](https://openrouter.ai/) - Alternative LLM provider
 
 ## Social Media
 
@@ -263,15 +264,3 @@ Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/stat
 ## License
 
 MIT License - See repository for details
-
-## Contributing
-
-Contributions welcome! Visit the GitHub repository to:
-- Report issues
-- Suggest new characters
-- Improve voice instructions
-- Add features
-
----
-
-**Note**: This Space requires `OPENAI_API_KEY` environment variable to be set. Optionally set `ELEVENLABS_API_KEY` for ElevenLabs TTS support.

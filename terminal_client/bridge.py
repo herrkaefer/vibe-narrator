@@ -29,6 +29,8 @@ from fastmcp.exceptions import ToolError
 
 from audio_player import AudioPlayer
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydub")
 
 class _AnsiCleaner:
     """Stateful ANSI escape sequence stripper."""
