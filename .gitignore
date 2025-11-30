@@ -86,6 +86,6 @@ terminal_client/dev.md
 
 # Binary files for Hugging Face (use Xet or Git LFS if needed)
 terminal_client/logo.png
-structure.jpeg
+# structure.jpeg - now tracked with Git LFS
 
 HACKATHON_CHECKLIST.md
