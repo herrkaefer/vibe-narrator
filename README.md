@@ -31,6 +31,14 @@ tags:
 
 Vibe Narrator transforms text into narrated speech with distinct character personalities, combining LLM interpretation with text-to-speech generation. Perfect for giving your AI agents, code documentation, or terminal output a unique voice.
 
+## Social Media
+
+Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/status/1995168703785079174)
+
+## Github
+
+Star the repository on [GitHub](https://github.com/herrkaefer/vibe-narrator)
+
 ## Features
 
 - **Unique Character Personalities** - From burned-out developers to zen masters
@@ -264,9 +272,6 @@ Built with:
 - [Hugging Face Spaces](https://huggingface.co/spaces) - Free hosting
 - [OpenRouter](https://openrouter.ai/) - Alternative LLM provider
 
-## Social Media
-
-Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/status/1995168703785079174)
 
 ## License
 

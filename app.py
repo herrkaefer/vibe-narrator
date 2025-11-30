@@ -1303,51 +1303,6 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
             After that, `narrate_text` can be called with just the prompt, using the configured defaults.
             """)
 
-        # About Tab
-        with gr.Tab("About"):
-            gr.Markdown("""
-            ### Vibe Narrator MCP Server
-
-            Vibe Narrator is an MCP server that accepts text input and performs stylized narration.
-
-            ### Bridge Tool
-
-            The bridge script helps connect terminal-running agents to the MCP server and plays audio.
-
-            Supported terminal-running agents: `codex`, `claude`, `gemini`, etc.
-
-            ### Supported LLM Models
-
-            - OpenAI
-            - OpenRouter
-
-            ### Supported TTS Providers
-
-            - OpenAI TTS
-            - ElevenLabs TTS
-
-            ### Predefined Characters
-
-            - The Burned-Out Developer
-            - The Overconfident Senior Developer
-            - The Reluctant Developer
-            - The Enlightened Zen Developer
-            - The Adoring Fanboy
-            - The Whispering ASMR Developer
-
-            ### GitHub
-
-            https://github.com/herrkaefer/vibe-narrator
-
-            ### Social Media
-
-            [Post on X](https://x.com/herr_kaefer/status/1995168703785079174)
-
-            ### License
-
-            MIT License
-            """)
-
         # README Tab
         with gr.Tab("README"):
             gr.Markdown(README_CONTENT)
