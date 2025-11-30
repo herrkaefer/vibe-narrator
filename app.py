@@ -111,18 +111,18 @@ def _load_readme() -> str:
         if len(parts) >= 3:
             content = parts[2].strip()
 
-    # Replace relative image paths with GitHub raw URLs
-    github_raw_base = "https://raw.githubusercontent.com/herrkaefer/vibe-narrator/main/"
+    # Replace relative image paths with HF Space URLs
+    hf_space_base = "https://huggingface.co/spaces/MCP-1st-Birthday/vibe-narrator/resolve/main/"
     # Handle markdown image syntax: ![alt](path)
     content = re.sub(
         r'!\[([^\]]*)\]\(assets/',
-        rf'![\1]({github_raw_base}assets/',
+        rf'![\1]({hf_space_base}assets/',
         content
     )
     # Handle HTML img tags: src="assets/..."
     content = re.sub(
         r'src="assets/',
-        f'src="{github_raw_base}assets/',
+        f'src="{hf_space_base}assets/',
         content
     )
 
