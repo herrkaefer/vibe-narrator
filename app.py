@@ -796,7 +796,7 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
                         - **configure**: Set up API keys and narration settings
                         - **narrate_text**: Generate narrated speech with personality
                         - **list_characters**: Get available character personalities
-                        - **get_config_status**: Check current configuration status
+                        - **get_config_status**: Check current configuration status (for debugging)
 
                         It can be used with any MCP client.
                         """)
@@ -827,7 +827,6 @@ These clips are the characters I sketched out. Pick whichever matches your mood 
                         ### Terminal Agent Compatibility
 
                         Vibe Narrator is a standard MCP server that can be used with any MCP client.
-
 
                         The terminal client `bridge.py` is compatible with many terminal-based agents: codex, Claude Code, Gemini, etc.
 
