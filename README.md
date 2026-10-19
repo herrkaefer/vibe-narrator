@@ -35,21 +35,40 @@ Vibe Narrator transforms text into narrated speech with distinct character perso
 
 Hear the narrator bring each character to life. Click play and turn on the sound.
 
-### The Overconfident Senior Developer
-
-https://github.com/user-attachments/assets/25c71519-7a1a-4244-805d-488edcda55e1
+<table>
+<tr>
+<td width="50%" valign="top">
 
 ### The Reluctant Developer
 
 https://github.com/user-attachments/assets/bd5e798d-9523-4a4d-8259-bfadce02534f
 
+</td>
+<td width="50%" valign="top">
+
 ### The Enlightened Zen Developer
 
 https://github.com/user-attachments/assets/ca80a0d3-28d4-424c-9edd-c82464977112
 
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
 ### The Whispering ASMR Developer
 
 https://github.com/user-attachments/assets/ac3006a5-fd42-4396-aa95-b63431f8e811
+
+</td>
+<td width="50%" valign="top">
+
+### The Overconfident Senior Developer
+
+https://github.com/user-attachments/assets/25c71519-7a1a-4244-805d-488edcda55e1
+
+</td>
+</tr>
+</table>
 
 ## Social Media
 
