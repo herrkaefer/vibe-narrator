@@ -31,6 +31,26 @@ tags:
 
 Vibe Narrator transforms text into narrated speech with distinct character personalities, combining LLM interpretation with text-to-speech generation. Perfect for giving your AI agents, code documentation, or terminal output a unique voice.
 
+## Demo Videos
+
+Hear the narrator bring each character to life. Click play and turn on the sound.
+
+### The Overconfident Senior Developer
+
+https://github.com/user-attachments/assets/25c71519-7a1a-4244-805d-488edcda55e1
+
+### The Reluctant Developer
+
+https://github.com/user-attachments/assets/bd5e798d-9523-4a4d-8259-bfadce02534f
+
+### The Enlightened Zen Developer
+
+https://github.com/user-attachments/assets/ca80a0d3-28d4-424c-9edd-c82464977112
+
+### The Whispering ASMR Developer
+
+https://github.com/user-attachments/assets/ac3006a5-fd42-4396-aa95-b63431f8e811
+
 ## Social Media
 
 Follow the project on X (Twitter): [@herr_kaefer](https://x.com/herr_kaefer/status/1995168703785079174)
